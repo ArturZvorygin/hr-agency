@@ -48,6 +48,26 @@ export class AuthController {
             return res.status(500).json({ message: "Internal server error" });
         }
     }
+    async me(req: Request, res: Response) {
+        try {
+            const current = (req as any).user;
+
+            if (!current || !current.userId) {
+                return res.status(401).json({ message: "Требуется авторизация" });
+            }
+
+            const user = await authService.getCurrentUser(current.userId);
+
+            return res.status(200).json({ user });
+        } catch (err: any) {
+            if (err.message === "USER_NOT_FOUND") {
+                return res.status(404).json({ message: "Пользователь не найден" });
+            }
+            console.error("Me error:", err);
+            return res.status(500).json({ message: "Internal server error" });
+        }
+    }
+
 }
 
 export const authController = new AuthController();

@@ -5,6 +5,7 @@ import morgan from "morgan";
 import { db } from "./db";
 import { sql } from "drizzle-orm";
 import authRouter from "./modules/auth/auth.routes";
+import companyRouter from "./modules/companies/company.routes";
 
 
 const app = express();
@@ -21,6 +22,7 @@ app.get("/health", (req, res) => {
     });
 });
 app.use("/api/auth", authRouter);
+app.use("/api/companies", companyRouter);
 
 // Проверка БД
 app.get("/health/db", async (req, res) => {

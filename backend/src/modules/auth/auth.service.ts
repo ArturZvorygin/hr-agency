@@ -104,6 +104,26 @@ export class AuthService {
             token
         };
     }
+
+    async getCurrentUser(userId: string) {
+        const user = await db.query.users.findFirst({
+            where: (u, { eq }) => eq(u.id, userId)
+        });
+
+        if (!user) {
+            throw new Error("USER_NOT_FOUND");
+        }
+
+        return {
+            id: user.id,
+            email: user.email,
+            role: user.role,
+            firstName: user.firstName,
+            lastName: user.lastName,
+            companyId: user.companyId
+        };
+    }
+
 }
 
 export const authService = new AuthService();
