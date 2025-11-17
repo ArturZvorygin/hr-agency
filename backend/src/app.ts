@@ -4,6 +4,8 @@ import cors from "cors";
 import morgan from "morgan";
 import { db } from "./db";
 import { sql } from "drizzle-orm";
+import authRouter from "./modules/auth/auth.routes";
+
 
 const app = express();
 
@@ -18,6 +20,7 @@ app.get("/health", (req, res) => {
         timestamp: new Date().toISOString()
     });
 });
+app.use("/api/auth", authRouter);
 
 // Проверка БД
 app.get("/health/db", async (req, res) => {
