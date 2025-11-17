@@ -6,6 +6,9 @@ import { db } from "./db";
 import { sql } from "drizzle-orm";
 import authRouter from "./modules/auth/auth.routes";
 import companyRouter from "./modules/companies/company.routes";
+import requestRouter from "./modules/requests/request.routes";
+import dictRouter from "./modules/dict/dict.routes";
+import adminRequestRouter from "./modules/adminRequests/adminRequest.routes";
 
 
 const app = express();
@@ -23,7 +26,9 @@ app.get("/health", (req, res) => {
 });
 app.use("/api/auth", authRouter);
 app.use("/api/companies", companyRouter);
-
+app.use("/api/requests", requestRouter);
+app.use("/api/dict", dictRouter);
+app.use("/api/admin/requests", adminRequestRouter);
 // Проверка БД
 app.get("/health/db", async (req, res) => {
     try {
