@@ -8,6 +8,7 @@ import * as usersSchema from "./users";
 import * as companiesSchema from "./companies";
 import * as requestsSchema from "./requests";
 import * as staffCategoriesSchema from "./staffCategories";
+import * as servicesSchema from "./services";
 
 
 
@@ -31,7 +32,8 @@ export const db = drizzle(pool, {
         ...usersSchema,
         ...companiesSchema,
         ...staffCategoriesSchema,
-        ...requestsSchema
+        ...requestsSchema,
+        ...servicesSchema
 
     }
 });

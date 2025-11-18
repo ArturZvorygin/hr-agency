@@ -8,5 +8,7 @@ const router = Router();
 router.get("/staff-categories", (req, res) =>
     dictController.getStaffCategories(req, res)
 );
-
+router.get("/services", (req, res) =>
+    dictController.getServices(req, res)
+);
 export default router;

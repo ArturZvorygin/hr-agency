@@ -9,14 +9,16 @@ import companyRouter from "./modules/companies/company.routes";
 import requestRouter from "./modules/requests/request.routes";
 import dictRouter from "./modules/dict/dict.routes";
 import adminRequestRouter from "./modules/adminRequests/adminRequest.routes";
+import adminStatsRouter from "./modules/adminStats/adminStats.routes";
 
+
+import adminServiceRouter from "./modules/adminServices/adminService.routes";
 
 const app = express();
-
 app.use(cors());
 app.use(express.json());
-app.use(morgan("dev"));
 
+app.use(morgan("dev"));
 app.get("/health", (req, res) => {
     res.json({
         status: "ok",
@@ -29,6 +31,9 @@ app.use("/api/companies", companyRouter);
 app.use("/api/requests", requestRouter);
 app.use("/api/dict", dictRouter);
 app.use("/api/admin/requests", adminRequestRouter);
+app.use("/api/admin/services", adminServiceRouter);
+app.use("/api/admin/stats", adminStatsRouter);
+
 // Проверка БД
 app.get("/health/db", async (req, res) => {
     try {
