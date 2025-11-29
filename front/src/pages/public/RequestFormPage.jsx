@@ -1,8 +1,10 @@
+// src/pages/public/RequestFormPage.jsx
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import Input from "../../components/common/Input.jsx";
 import Select from "../../components/common/Select.jsx";
 import Button from "../../components/common/Button.jsx";
-import { createRequest } from "../../api/client.js";
+import { createPublicRequest } from "../../api/client.js";
 
 const CATEGORY_OPTIONS = [
     { value: "TOP", label: "Топ-менеджмент" },
@@ -25,6 +27,7 @@ export default function RequestFormPage() {
         requirements: "",
     });
     const [status, setStatus] = useState(null);
+    const navigate = useNavigate();
 
     function handleChange(e) {
         const { name, value } = e.target;
@@ -35,7 +38,7 @@ export default function RequestFormPage() {
         e.preventDefault();
         setStatus("loading");
         try {
-            await createRequest(form);
+            await createPublicRequest(form);
             setStatus("success");
             setForm({
                 email: "",
@@ -57,9 +60,22 @@ export default function RequestFormPage() {
     return (
         <div className="auth-page">
             <div className="auth-card auth-card--wide">
+                <div className="auth-card__top-row">
+                    <button
+                        type="button"
+                        className="link-button"
+                        onClick={() => navigate("/")}
+                    >
+                        ← Назад на главную
+                    </button>
+                </div>
+
                 <h1>Заявка на подбор персонала</h1>
                 <p className="auth-card__subtitle">
-                    Оставьте заявку, и мы свяжемся с вами для уточнения деталей вакансии.
+                    Оставьте заявку — мы свяжемся с вами, уточним детали вакансии
+                    и предложим формат сотрудничества.
+                    <br />
+                    Регистрация не требуется: по этой заявке мы создадим карточку компании и назначим менеджера.
                 </p>
 
                 <form className="form-grid" onSubmit={handleSubmit}>
@@ -106,7 +122,7 @@ export default function RequestFormPage() {
                         onChange={handleChange}
                     />
                     <Input
-                        label="Заработная плата"
+                        label="Ожидаемая зарплата"
                         name="salary"
                         value={form.salary}
                         onChange={handleChange}
@@ -140,13 +156,13 @@ export default function RequestFormPage() {
                         </Button>
                         {status === "success" && (
                             <span className="form-status form-status--success">
-                Заявка отправлена. Мы свяжемся с вами в ближайшее время.
-              </span>
+                                Заявка отправлена. Мы свяжемся с вами в ближайшее время.
+                            </span>
                         )}
                         {status === "error" && (
                             <span className="form-status form-status--error">
-                Ошибка отправки. Попробуйте позже.
-              </span>
+                                Ошибка отправки. Попробуйте позже.
+                            </span>
                         )}
                     </div>
                 </form>

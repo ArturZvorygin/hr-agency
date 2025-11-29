@@ -2,7 +2,7 @@
 import express from "express";
 import cors from "cors";
 import morgan from "morgan";
-import { db } from "./db";
+import { db } from "./db/db";
 import { sql } from "drizzle-orm";
 import authRouter from "./modules/auth/auth.routes";
 import companyRouter from "./modules/companies/company.routes";
@@ -13,6 +13,7 @@ import adminStatsRouter from "./modules/adminStats/adminStats.routes";
 
 
 import adminServiceRouter from "./modules/adminServices/adminService.routes";
+import {publicRouter} from "./modules/public/public.routes";
 
 const app = express();
 app.use(cors());
@@ -33,7 +34,7 @@ app.use("/api/dict", dictRouter);
 app.use("/api/admin/requests", adminRequestRouter);
 app.use("/api/admin/services", adminServiceRouter);
 app.use("/api/admin/stats", adminStatsRouter);
-
+app.use("/api/public", publicRouter);
 // Проверка БД
 app.get("/health/db", async (req, res) => {
     try {

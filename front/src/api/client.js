@@ -1,69 +1,507 @@
 // src/api/client.js
 const API_URL = "http://localhost:4000/api";
 
+/* ==========================
+   helpers для admin-auth
+   ========================== */
+
+export function getCurrentAdmin() {
+    if (typeof window === "undefined") return null;
+    const raw = localStorage.getItem("adminUser");
+    if (!raw) return null;
+    try {
+        return JSON.parse(raw);
+    } catch {
+        return null;
+    }
+}
+
+export function isAdminAuthenticated() {
+    if (typeof window === "undefined") return false;
+    const token = localStorage.getItem("adminToken");
+    return Boolean(token);
+}
+
+/* ==========================
+   helpers для client-auth
+   ========================== */
+
+export function getCurrentClient() {
+    if (typeof window === "undefined") return null;
+    const raw = localStorage.getItem("clientUser");
+    if (!raw) return null;
+    try {
+        return JSON.parse(raw);
+    } catch {
+        return null;
+    }
+}
+
+export function isClientAuthenticated() {
+    if (typeof window === "undefined") return false;
+    const token = localStorage.getItem("token");
+    return Boolean(token);
+}
+
+export function clearClientAuth() {
+    if (typeof window === "undefined") return;
+    localStorage.removeItem("token");
+    localStorage.removeItem("refreshToken");
+    localStorage.removeItem("clientUser");
+}
+
+export function clearAdminAuth() {
+    if (typeof window === "undefined") return;
+    localStorage.removeItem("adminToken");
+    localStorage.removeItem("adminRefreshToken");
+    localStorage.removeItem("adminUser");
+}
+
+/* ==========================
+   Базовый запрос
+   ========================== */
+
 async function request(path, options = {}) {
+    const {
+        method = "GET",
+        body,
+        auth = false,
+        admin = false,
+        headers: extraHeaders = {},
+        // _retry = false, // можно будет использовать для auto-refresh
+    } = options;
+
+    const headers = {
+        "Content-Type": "application/json",
+        ...extraHeaders,
+    };
+
+    if (auth) {
+        const key = admin ? "adminToken" : "token";
+        const token =
+            typeof window !== "undefined" ? localStorage.getItem(key) : null;
+        if (token) {
+            headers.Authorization = `Bearer ${token}`;
+        }
+    }
+
     const res = await fetch(API_URL + path, {
-        headers: {
-            "Content-Type": "application/json",
-            ...(options.headers || {}),
-        },
-        ...options,
+        method,
+        headers,
+        body: body ? JSON.stringify(body) : undefined,
     });
 
     if (!res.ok) {
-        // Для дебага можно потом добавить вывод текста ошибки
+        const text = await res.text().catch(() => "");
+        console.error("API error:", res.status, text);
         throw new Error(`API error: ${res.status}`);
     }
 
     if (res.status === 204) return null;
-    const data = await res.json();
-    return data;
+    return res.json();
 }
 
-// Публичная заявка с лендинга
-export async function createRequest(payload) {
-    return request("/public/requests", {
-        method: "POST",
-        body: JSON.stringify(payload),
-    });
-}
+/* ==========================
+   AUTH (клиент + общий)
+   ========================== */
 
-// Клиентская авторизация
+// POST /api/auth/login
 export async function loginClient({ email, password }) {
     const data = await request("/auth/login", {
         method: "POST",
-        body: JSON.stringify({ email, password }),
+        body: { email, password },
     });
-    return data.token;
+
+    // бэк возвращает { user, accessToken, refreshToken, token }
+    if (data.token) {
+        localStorage.setItem("token", data.token);
+    }
+    if (data.refreshToken) {
+        localStorage.setItem("refreshToken", data.refreshToken);
+    }
+    if (data.user) {
+        localStorage.setItem("clientUser", JSON.stringify(data.user));
+    }
+
+    return data;
 }
 
+// POST /api/auth/register
 export async function registerClient(payload) {
-    return request("/auth/register", {
+    const data = await request("/auth/register", {
         method: "POST",
-        body: JSON.stringify(payload),
+        body: payload,
+    });
+
+    // можно сразу авторизовать
+    if (data.token) {
+        localStorage.setItem("token", data.token);
+    }
+    if (data.refreshToken) {
+        localStorage.setItem("refreshToken", data.refreshToken);
+    }
+    if (data.user) {
+        localStorage.setItem("clientUser", JSON.stringify(data.user));
+    }
+
+    return data;
+}
+
+// GET /api/auth/me
+export async function fetchMe() {
+    return request("/auth/me", {
+        method: "GET",
+        auth: true,
     });
 }
 
-// Восстановление пароля
-export async function forgotPassword(email) {
-    return request("/auth/forgot-password", {
+// POST /api/auth/refresh
+export async function refreshAuth() {
+    if (typeof window === "undefined") {
+        throw new Error("Нет доступа к window");
+    }
+    const refreshToken = localStorage.getItem("refreshToken");
+    if (!refreshToken) {
+        throw new Error("Нет refreshToken");
+    }
+
+    const data = await request("/auth/refresh", {
         method: "POST",
-        body: JSON.stringify({ email }),
+        body: { refreshToken },
     });
+
+    if (data.token) {
+        localStorage.setItem("token", data.token);
+    }
+    if (data.refreshToken) {
+        localStorage.setItem("refreshToken", data.refreshToken);
+    }
+    if (data.user) {
+        localStorage.setItem("clientUser", JSON.stringify(data.user));
+    }
+
+    return data;
+}
+
+// POST /api/auth/logout
+export async function logoutClient() {
+    if (typeof window === "undefined") return;
+    const refreshToken = localStorage.getItem("refreshToken");
+
+    try {
+        if (refreshToken) {
+            await request("/auth/logout", {
+                method: "POST",
+                body: { refreshToken },
+                auth: true,
+            });
+        }
+    } catch (e) {
+        console.warn("logout error:", e);
+    } finally {
+        clearClientAuth();
+    }
+}
+
+/* ==========================
+   Логин АДМИНА
+   ========================== */
+
+// отдельного /api/admin/login нет, используем /api/auth/login
+export async function loginAdmin({ email, password }) {
+    const data = await request("/auth/login", {
+        method: "POST",
+        body: { email, password },
+    });
+
+    if (!data.user || data.user.role !== "admin") {
+        throw new Error("Пользователь не является администратором");
+    }
+
+    if (data.token) {
+        localStorage.setItem("adminToken", data.token);
+    }
+    if (data.refreshToken) {
+        localStorage.setItem("adminRefreshToken", data.refreshToken);
+    }
+    if (data.user) {
+        localStorage.setItem("adminUser", JSON.stringify(data.user));
+    }
+
+    return data;
+}
+
+// POST /api/auth/refresh — для админа можно использовать тот же,
+// просто подставляя adminRefreshToken / adminToken при желании.
+// Пока сделаем простой logout:
+export async function logoutAdmin() {
+    if (typeof window === "undefined") return;
+    const refreshToken = localStorage.getItem("adminRefreshToken");
+
+    try {
+        if (refreshToken) {
+            await request("/auth/logout", {
+                method: "POST",
+                body: { refreshToken },
+                auth: true,
+                admin: true,
+            });
+        }
+    } catch (e) {
+        console.warn("logout admin error:", e);
+    } finally {
+        clearAdminAuth();
+    }
+}
+
+/* ==========================
+   Публичная заявка с лендинга
+   ========================== */
+
+// POST /api/public/requests
+export async function createPublicRequest(payload) {
+    return request("/public/requests", {
+        method: "POST",
+        body: payload,
+    });
+}
+
+/* ==========================
+   Клиент: компания
+   ========================== */
+
+// GET /api/companies/my
+export async function getMyCompany() {
+    return request("/companies/my", {
+        method: "GET",
+        auth: true,
+    });
+}
+
+// PUT /api/companies/my
+export async function updateMyCompany(payload) {
+    return request("/companies/my", {
+        method: "PUT",
+        auth: true,
+        body: payload,
+    });
+}
+
+/* ==========================
+   Клиент: заявки (личный кабинет)
+   ========================== */
+
+// POST /api/requests
+export async function createClientRequest(payload) {
+    return request("/requests", {
+        method: "POST",
+        auth: true,
+        body: payload,
+    });
+}
+
+// GET /api/requests/my
+export async function getClientRequests() {
+    return request("/requests/my", {
+        method: "GET",
+        auth: true,
+    });
+}
+
+// GET /api/requests/:id
+export async function getClientRequestById(id) {
+    return request(`/requests/${id}`, {
+        method: "GET",
+        auth: true,
+    });
+}
+
+/* ==========================
+   Справочники (dict)
+   ========================== */
+
+// GET /api/dict/staff-categories
+export async function getStaffCategoriesDict() {
+    return request("/dict/staff-categories", {
+        method: "GET",
+    });
+}
+
+// GET /api/dict/services
+export async function getServicesDict() {
+    return request("/dict/services", {
+        method: "GET",
+    });
+}
+
+/* ==========================
+   ADMIN: заявки
+   ========================== */
+
+// GET /api/admin/requests
+export async function adminGetRequests() {
+    return request("/admin/requests", {
+        method: "GET",
+        auth: true,
+        admin: true,
+    });
+}
+
+// GET /api/admin/requests/:id
+export async function adminGetRequestById(id) {
+    return request(`/admin/requests/${id}`, {
+        method: "GET",
+        auth: true,
+        admin: true,
+    });
+}
+
+// PATCH /api/admin/requests/:id/status
+export async function adminChangeRequestStatus(id, status) {
+    return request(`/admin/requests/${id}/status`, {
+        method: "PATCH",
+        auth: true,
+        admin: true,
+        body: { status },
+    });
+}
+
+// GET /api/admin/requests/me/assigned
+export async function adminGetMyAssignedRequests() {
+    return request("/admin/requests/me/assigned", {
+        method: "GET",
+        auth: true,
+        admin: true,
+    });
+}
+
+/* ==========================
+   ADMIN: услуги
+   ========================== */
+
+// POST /api/admin/services
+export async function adminCreateService(payload) {
+    return request("/admin/services", {
+        method: "POST",
+        auth: true,
+        admin: true,
+        body: payload,
+    });
+}
+
+// PUT /api/admin/services/:id
+export async function adminUpdateService(id, payload) {
+    return request(`/admin/services/${id}`, {
+        method: "PUT",
+        auth: true,
+        admin: true,
+        body: payload,
+    });
+}
+
+// DELETE /api/admin/services/:id
+export async function adminDeleteService(id) {
+    return request(`/admin/services/${id}`, {
+        method: "DELETE",
+        auth: true,
+        admin: true,
+    });
+}
+
+/* ==========================
+   ADMIN: статистика
+   ========================== */
+
+// GET /api/admin/stats/overview
+export async function adminGetOverviewStats() {
+    return request("/admin/stats/overview", {
+        method: "GET",
+        auth: true,
+        admin: true,
+    });
+}
+
+/* ==========================
+   ВОССТАНОВЛЕНИЕ ПАРОЛЯ
+   (эндпоинтов на бэке пока нет)
+   ========================== */
+
+export async function forgotPassword(email) {
+    // На сервере нет /api/auth/forgot-password — чтобы не было тихих багов,
+    // явно кидаем ошибку. Когда добавишь эндпоинт — здесь заменим.
+    throw new Error("Функция восстановления пароля ещё не реализована на сервере");
 }
 
 export async function resetPassword({ token, password }) {
-    return request("/auth/reset-password", {
-        method: "POST",
-        body: JSON.stringify({ token, password }),
+    throw new Error("Функция сброса пароля ещё не реализована на сервере");
+}
+// ===== КОМПАНИЯ КЛИЕНТА (профиль) =====
+
+// GET /api/companies/my
+export async function getClientCompany() {
+    return request("/companies/my", {
+        method: "GET",
+        auth: true,
     });
 }
 
-// Логин админа
-export async function loginAdmin({ email, password }) {
-    const data = await request("/admin/login", {
-        method: "POST",
-        body: JSON.stringify({ email, password }),
+// PUT /api/companies/my
+export async function updateClientCompany(payload) {
+    return request("/companies/my", {
+        method: "PUT",
+        auth: true,
+        body: payload,
     });
-    return data.token;
+}
+/* ==========================
+   ADMIN: компании (клиенты)
+   ========================== */
+
+// GET /api/admin/companies
+export async function adminGetCompanies() {
+    return request("/admin/companies", {
+        method: "GET",
+        auth: true,
+        admin: true,
+    });
+}
+
+// POST /api/admin/companies
+export async function adminCreateCompany(payload) {
+    return request("/admin/companies", {
+        method: "POST",
+        auth: true,
+        admin: true,
+        body: payload,
+    });
+}
+
+// PUT /api/admin/companies/:id
+export async function adminUpdateCompany(id, payload) {
+    return request(`/admin/companies/${id}`, {
+        method: "PUT",
+        auth: true,
+        admin: true,
+        body: payload,
+    });
+}
+
+// DELETE /api/admin/companies/:id
+export async function adminDeleteCompany(id) {
+    return request(`/admin/companies/${id}`, {
+        method: "DELETE",
+        auth: true,
+        admin: true,
+    });
+}
+/* ==========================
+   ADMIN: услуги
+   ========================== */
+
+export async function adminGetServices() {
+    return request("/admin/services", {
+        method: "GET",
+        auth: true,
+        admin: true,
+    });
 }

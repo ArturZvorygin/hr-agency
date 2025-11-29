@@ -1,0 +1,33 @@
+/* Внешний фон для всего сайта */
+.app-shell {
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: stretch;
+    padding: 24px 0;
+    background: linear-gradient(180deg, #fff7ed 0%, #f4f4f7 40%, #e5e7eb 100%);
+}
+
+/* Белый контейнер по центру (как в фигме) */
+.app-shell__inner {
+    width: 100%;
+    max-width: 1440px;
+    margin: 0 24px;
+    border-radius: 24px;
+    overflow: hidden;
+    background: #f4f4f7; /* внутри уже работают .public / .app / .auth-page */
+    box-shadow: 0 24px 60px rgba(15, 23, 42, 0.18);
+}
+
+/* На мобильных контейнер без боковых паддингов и поменьше тени */
+@media (max-width: 768px) {
+    .app-shell {
+        padding: 0;
+    }
+
+    .app-shell__inner {
+        margin: 0;
+        border-radius: 0;
+        box-shadow: none;
+    }
+}

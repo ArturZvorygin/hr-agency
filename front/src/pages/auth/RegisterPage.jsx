@@ -1,3 +1,4 @@
+// src/pages/auth/RegisterPage.jsx
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import Input from "../../components/common/Input.jsx";
@@ -6,7 +7,7 @@ import { registerClient } from "../../api/client.js";
 
 export default function RegisterPage() {
     const [form, setForm] = useState({
-        company: "",
+        companyName: "",
         name: "",
         email: "",
         phone: "",
@@ -24,8 +25,18 @@ export default function RegisterPage() {
         e.preventDefault();
         setError(null);
         try {
-            await registerClient(form);
-            navigate("/login");
+            // маппинг под DTO бэка
+            await registerClient({
+                companyName: form.companyName,
+                email: form.email,
+                password: form.password,
+                firstName: form.name,
+                phone: form.phone,
+            });
+
+            // т.к. registerClient уже кладёт token + user в localStorage,
+            // сразу ведём в кабинет
+            navigate("/client/dashboard");
         } catch (err) {
             console.error(err);
             setError("Ошибка регистрации. Попробуйте позже.");
@@ -43,8 +54,8 @@ export default function RegisterPage() {
                 <form onSubmit={handleSubmit} className="auth-form">
                     <Input
                         label="Компания"
-                        name="company"
-                        value={form.company}
+                        name="companyName"
+                        value={form.companyName}
                         onChange={handleChange}
                         required
                     />
@@ -78,11 +89,16 @@ export default function RegisterPage() {
                         onChange={handleChange}
                         required
                     />
-                    {error && <div className="form-status form-status--error">{error}</div>}
+
+                    {error && (
+                        <div className="form-status form-status--error">{error}</div>
+                    )}
+
                     <Button type="submit">Зарегистрироваться</Button>
 
                     <div className="auth-form__links">
                         <Link to="/login">Уже есть аккаунт</Link>
+                        <Link to="/">← Вернуться на главную</Link>
                     </div>
                 </form>
             </div>

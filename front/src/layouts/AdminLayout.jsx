@@ -29,7 +29,12 @@ export default function AdminLayout() {
                     />
                     <span className="sidebar__logo-text">Наши люди · Admin</span>
                 </div>
-
+                <NavLink
+                    to="/"
+                    className="sidebar__item"
+                >
+                    На сайт
+                </NavLink>
                 <nav className="sidebar__nav">
                     <NavLink
                         to="/admin/dashboard"
@@ -69,7 +74,7 @@ export default function AdminLayout() {
                         className="sidebar__item sidebar__item--danger"
                         onClick={() => {
                             localStorage.removeItem("adminToken");
-                            window.location.href = "/admin/login";
+                            window.location.href = "/";
                         }}
                     >
                         Выйти

@@ -1,24 +1,30 @@
 // src/modules/adminServices/adminService.routes.ts
 import { Router } from "express";
-import { adminServiceController } from "./adminService.controller";
 import { authGuard } from "../../middlewares/authGuard";
-import { roleGuard } from "../../middlewares/roleGuard";
+import { adminServiceController } from "./adminService.controller";
 
 const router = Router();
 
-// Только для admin (менеджерам это не обязательно)
-const onlyAdmin = [authGuard, roleGuard(["admin"])];
+// Все маршруты защищены authGuard, внутри контроллера дополнительно проверяем role === 'admin'
 
-router.post("/", ...onlyAdmin, (req, res) =>
+// GET /api/admin/services
+router.get("/", authGuard, (req, res) =>
+    adminServiceController.list(req, res)
+);
+
+// POST /api/admin/services
+router.post("/", authGuard, (req, res) =>
     adminServiceController.create(req, res)
 );
 
-router.put("/:id", ...onlyAdmin, (req, res) =>
+// PUT /api/admin/services/:id
+router.put("/:id", authGuard, (req, res) =>
     adminServiceController.update(req, res)
 );
 
-router.delete("/:id", ...onlyAdmin, (req, res) =>
-    adminServiceController.delete(req, res)
+// DELETE /api/admin/services/:id
+router.delete("/:id", authGuard, (req, res) =>
+    adminServiceController.remove(req, res)
 );
 
 export default router;

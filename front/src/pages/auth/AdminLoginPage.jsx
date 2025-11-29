@@ -1,6 +1,6 @@
 // src/pages/auth/AdminLoginPage.jsx
-import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { useNavigate, useLocation, Link } from "react-router-dom";
 import Input from "../../components/common/Input.jsx";
 import Button from "../../components/common/Button.jsx";
 import { loginAdmin } from "../../api/client.js";
@@ -9,11 +9,14 @@ export default function AdminLoginPage() {
     const [form, setForm] = useState({ email: "", password: "" });
     const [error, setError] = useState(null);
     const navigate = useNavigate();
+    const location = useLocation();
 
-    // Если уже залогинен как админ — в админ-панель
     useEffect(() => {
-        const adminToken = localStorage.getItem("adminToken");
-        if (adminToken) {
+        const token =
+            typeof window !== "undefined"
+                ? localStorage.getItem("adminToken")
+                : null;
+        if (token) {
             navigate("/admin/dashboard", { replace: true });
         }
     }, [navigate]);
@@ -27,9 +30,20 @@ export default function AdminLoginPage() {
         e.preventDefault();
         setError(null);
         try {
-            const token = await loginAdmin(form);
-            localStorage.setItem("adminToken", token);
-            navigate("/admin/dashboard");
+            const data = await loginAdmin(form);
+
+            if (!data.user) {
+                setError("Ответ сервера без данных пользователя");
+                return;
+            }
+
+            if (data.user.role !== "admin") {
+                setError("У вас нет прав администратора");
+                return;
+            }
+
+            const from = location.state?.from || "/admin/dashboard";
+            navigate(from, { replace: true });
         } catch (err) {
             console.error(err);
             setError("Неверный логин или пароль");
@@ -43,7 +57,7 @@ export default function AdminLoginPage() {
 
                 <form onSubmit={handleSubmit} className="auth-form">
                     <Input
-                        label="Email"
+                        label="Электронная почта"
                         type="email"
                         name="email"
                         value={form.email}
@@ -63,15 +77,10 @@ export default function AdminLoginPage() {
                         <div className="form-status form-status--error">{error}</div>
                     )}
 
-                    <div className="auth-form__buttons">
-                        <Button type="submit">Войти</Button>
-                        <Button
-                            type="button"
-                            variant="ghost"
-                            onClick={() => navigate("/")}
-                        >
-                            Назад
-                        </Button>
+                    <Button type="submit">Войти</Button>
+
+                    <div className="auth-form__links">
+                        <Link to="/">← На главную</Link>
                     </div>
                 </form>
             </div>

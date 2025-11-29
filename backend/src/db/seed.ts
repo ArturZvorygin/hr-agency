@@ -1,8 +1,8 @@
 // src/db/seed.ts
 import "dotenv/config";
 import bcrypt from "bcryptjs";
-import { eq } from "drizzle-orm";
-import { db } from "../db";
+import { sql } from "drizzle-orm";
+import { db } from "./db";
 import { companies } from "./schema/companies";
 import { users } from "./schema/users";
 import { staffCategories } from "./schema/staffCategories";
@@ -12,228 +12,243 @@ import { requests } from "./schema/requests";
 async function seed() {
     console.log("=== Запуск seed ===");
 
-    // 1. Компания "Наши люди"
-    let companyId: string;
+    // ------------------------------------
+    // 0. Полная очистка таблиц
+    // ВАЖНО: TRUNCATE ... CASCADE — снесёт связанные записи.
+    // ------------------------------------
+    console.log("Очищаем таблицы...");
+    await db.execute(sql`
+        TRUNCATE TABLE
+            "requests",
+            "services",
+            "staff_categories",
+            "users",
+            "companies"
+        RESTART IDENTITY CASCADE;
+    `);
+    console.log("Таблицы очищены");
 
-    const existingCompanyRows = await db
-        .select()
-        .from(companies)
-        .where(eq(companies.name, 'ООО "Наши люди"'))
-        .limit(1);
+    // ------------------------------------
+    // 1. Компания "Наши люди" (РФ)
+    // ------------------------------------
+    console.log("Создаём компанию...");
 
-    const existingCompany = existingCompanyRows[0];
+    const [createdCompany] = await db
+        .insert(companies)
+        .values({
+            name: 'ООО "Наши люди"',
+            email: "info@nashi-ludi.ru",
+            phone: "+7 (495) 000-00-00",
+            website: "https://nashi-ludi.ru",
+            description:
+                "HR-агентство «Наши люди» — профессиональный подбор персонала для компаний по всей России.",
+            industry: "HR / Recruitment",
+            size: "11–50 сотрудников",
+        })
+        .returning();
 
-    if (existingCompany) {
-        companyId = existingCompany.id;
-        console.log("Компания уже существует:", companyId);
-    } else {
-        const insertedCompanies = await db
-            .insert(companies)
-            .values({
-                name: 'ООО "Наши люди"',
-                email: "info@nashi-ludi.test",
-                phone: "+996700000000",
-                website: "https://nashi-ludi.test",
-                description: "Кадровое агентство для бизнеса",
-                industry: "HR/Recruitment",
-                size: "11-50",
-            })
-            .returning();
+    const companyId = createdCompany.id;
+    console.log("Компания создана:", companyId);
 
-        const createdCompany = insertedCompanies[0];
-        companyId = createdCompany.id;
-        console.log("Создали компанию:", companyId);
-    }
-
+    // ------------------------------------
     // 2. Пользователи: admin и client
-    const passwordPlain = "password123";
-    const passwordHash = await bcrypt.hash(passwordPlain, 10);
+    // ------------------------------------
+    console.log("Создаём пользователей (админ + клиент)...");
 
-    // Админ
-    let adminId: string;
-    const existingAdminRows = await db
-        .select()
-        .from(users)
-        .where(eq(users.email, "admin@example.com"))
-        .limit(1);
+    // Логины / пароли ДЛЯ ТЕСТА:
+    // Админ:
+    //   email:    admin@nashi-ludi.ru
+    //   password: Admin123!
+    //
+    // Клиент:
+    //   email:    client@nashi-ludi.ru
+    //   password: Client123!
 
-    const existingAdmin = existingAdminRows[0];
+    const adminEmail = "admin@nashi-ludi.ru";
+    const clientEmail = "client@nashi-ludi.ru";
 
-    if (existingAdmin) {
-        adminId = existingAdmin.id;
-        console.log("Админ уже существует:", adminId);
-    } else {
-        const insertedAdmins = await db
-            .insert(users)
-            .values({
-                email: "admin@example.com",
-                passwordHash,
-                role: "admin",
-                firstName: "Админ",
-                lastName: "Системный",
-                phone: "+996700000001",
-                companyId: null,
-                isActive: true,
-            })
-            .returning();
+    const adminPasswordPlain = "Admin123!";
+    const clientPasswordPlain = "Client123!";
 
-        const admin = insertedAdmins[0];
-        adminId = admin.id;
-        console.log("Создали админа:", adminId);
-    }
+    const adminPasswordHash = await bcrypt.hash(adminPasswordPlain, 10);
+    const clientPasswordHash = await bcrypt.hash(clientPasswordPlain, 10);
 
-    // Клиент
-    let clientId: string;
-    const existingClientRows = await db
-        .select()
-        .from(users)
-        .where(eq(users.email, "client1@example.com"))
-        .limit(1);
+    // --- Админ ---
+    const [admin] = await db
+        .insert(users)
+        .values({
+            email: adminEmail,
+            passwordHash: adminPasswordHash,
+            role: "admin",
+            firstName: "Администратор",
+            lastName: "Системы",
+            phone: "+7 (495) 000-00-01",
+            companyId: null, // админ не привязан к конкретной компании
+            isActive: true,
+        })
+        .returning();
 
-    const existingClient = existingClientRows[0];
+    const adminId = admin.id;
+    console.log("Админ создан:", adminId);
 
-    if (existingClient) {
-        clientId = existingClient.id;
-        console.log("Клиент уже существует:", clientId);
-    } else {
-        const insertedClients = await db
-            .insert(users)
-            .values({
-                email: "client1@example.com",
-                passwordHash,
-                role: "client",
-                firstName: "Иван",
-                lastName: "Клиентов",
-                phone: "+996700000002",
-                companyId,
-                isActive: true,
-            })
-            .returning();
+    // --- Клиент ---
+    const [client] = await db
+        .insert(users)
+        .values({
+            email: clientEmail,
+            passwordHash: clientPasswordHash,
+            role: "client",
+            firstName: "Алексей",
+            lastName: "Клиентов",
+            phone: "+7 (495) 000-00-02",
+            companyId, // клиент привязан к компании "Наши люди"
+            isActive: true,
+        })
+        .returning();
 
-        const client = insertedClients[0];
-        clientId = client.id;
-        console.log("Создали клиента:", clientId);
-    }
+    const clientId = client.id;
+    console.log("Клиент создан:", clientId);
 
+    // ------------------------------------
     // 3. Категории персонала (staff_categories)
+    // ------------------------------------
+    console.log("Создаём категории персонала...");
+
     const categoriesData = [
-        { code: "TOP", name: "Топ-менеджмент" },
-        { code: "IT", name: "IT-специалисты" },
+        { code: "TOP",   name: "Топ-менеджмент" },
+        { code: "IT",    name: "IT-специалисты" },
         { code: "ADMIN", name: "Административный персонал" },
-        { code: "PROD", name: "Производственный персонал" },
-        { code: "SALES", name: "Специалисты продаж" },
+        { code: "PROD",  name: "Производственный персонал" },
+        { code: "SALES", name: "Специалисты по продажам" },
     ];
 
-    for (const cat of categoriesData) {
-        const existsRows = await db
-            .select()
-            .from(staffCategories)
-            .where(eq(staffCategories.code, cat.code))
-            .limit(1);
-
-        const exists = existsRows[0];
-
-        if (!exists) {
-            await db.insert(staffCategories).values({
+    const categoriesInserted = await db
+        .insert(staffCategories)
+        .values(
+            categoriesData.map((cat) => ({
                 code: cat.code,
                 name: cat.name,
                 description: null,
-            });
-            console.log("Добавили категорию:", cat.code);
-        }
-    }
+            }))
+        )
+        .returning();
 
-    const itCategoryRows = await db
-        .select()
-        .from(staffCategories)
-        .where(eq(staffCategories.code, "IT"))
-        .limit(1);
-    const itCategory = itCategoryRows[0];
+    const itCategory   = categoriesInserted.find((c) => c.code === "IT")   || null;
+    const topCategory  = categoriesInserted.find((c) => c.code === "TOP")  || null;
+    const salesCategory= categoriesInserted.find((c) => c.code === "SALES")|| null;
 
+    console.log("Категории созданы");
+
+    // ------------------------------------
     // 4. Услуги (services)
+    // ------------------------------------
+    console.log("Создаём услуги...");
+
     const servicesData = [
         {
-            name: "Подбор менеджеров среднего звена",
-            description: "Поиск и отбор менеджеров продаж, маркетинга, HR.",
-            basePrice: "50000",
+            name: "Подбор руководителей и топ-менеджмента",
+            description:
+                "Поиск и оценка директоров, руководителей подразделений и топ-менеджеров для компаний по всей России.",
+            basePrice: "250000", // RUB как string
         },
         {
             name: "Подбор IT-специалистов",
-            description: "Разработчики, тимлиды, проджекты, аналитики.",
-            basePrice: "80000",
+            description:
+                "Разработчики, тимлиды, проджекты, аналитики, DevOps-инженеры.",
+            basePrice: "180000",
         },
         {
-            name: "Массовый подбор линейного персонала",
-            description: "Ритейл, склады, производство.",
-            basePrice: "30000",
+            name: "Массовый подбор персонала",
+            description:
+                "Ритейл, склады, логистика, производство — массовый подбор линейных сотрудников.",
+            basePrice: "90000",
         },
     ];
 
-    for (const s of servicesData) {
-        const existsRows = await db
-            .select()
-            .from(services)
-            .where(eq(services.name, s.name))
-            .limit(1);
+    await db.insert(services).values(
+        servicesData.map((s) => ({
+            name: s.name,
+            description: s.description,
+            basePrice: s.basePrice,
+            isActive: true,
+        }))
+    );
 
-        const exists = existsRows[0];
+    console.log("Услуги созданы");
 
-        if (!exists) {
-            await db.insert(services).values({
-                name: s.name,
-                description: s.description,
-                basePrice: s.basePrice, // numeric как string
-                isActive: true,
-            });
-            console.log("Добавили услугу:", s.name);
-        }
-    }
-
+    // ------------------------------------
     // 5. Тестовые заявки (requests)
-    const existingRequestsRows = await db
-        .select()
-        .from(requests)
-        .where(eq(requests.companyId, companyId));
+    // ------------------------------------
+    console.log("Создаём тестовые заявки...");
 
-    if (existingRequestsRows.length === 0) {
-        await db.insert(requests).values([
-            {
-                companyId,
-                createdBy: clientId,
-                assignedManager: adminId,
-                positionTitle: "Frontend-разработчик",
-                staffCategoryId: itCategory ? itCategory.id : null,
-                experienceYears: "3.0",
-                salaryFrom: "80000",
-                salaryTo: "120000",
-                currency: "KGS",
-                description: "Разработка и поддержка фронтенда для web-приложений.",
-                keyRequirements:
-                    "React, TypeScript, опыт работы с REST API, понимание UX.",
-                status: "new",
-            },
-            {
-                companyId,
-                createdBy: clientId,
-                assignedManager: adminId,
-                positionTitle: "HR-менеджер",
-                staffCategoryId: null,
-                experienceYears: "2.0",
-                salaryFrom: "60000",
-                salaryTo: "90000",
-                currency: "KGS",
-                description:
-                    "Подбор персонала, адаптация сотрудников, участие в HR-проектах.",
-                keyRequirements:
-                    "Опыт подбора, знание HR-инструментов, коммуникабельность.",
-                status: "in_progress",
-            },
-        ]);
-        console.log("Создали тестовые заявки");
-    } else {
-        console.log("Заявки уже существуют, пропускаем создание");
-    }
+    await db.insert(requests).values([
+        {
+            companyId,
+            createdBy: clientId,
+            assignedManager: adminId,
+            positionTitle: "Руководитель отдела продаж",
+            staffCategoryId: salesCategory ? salesCategory.id : null,
+            experienceYears: "5.0",
+            salaryFrom: "180000",
+            salaryTo: "250000",
+            currency: "RUB",
+            description:
+                "Запуск и развитие отдела продаж, постановка планов, управление командой из 10–15 менеджеров.",
+            keyRequirements:
+                "Опыт руководства продажами от 3 лет, знание B2B и B2C, умение работать с аналитикой и воронкой.",
+            status: "new",
+        },
+        {
+            companyId,
+            createdBy: clientId,
+            assignedManager: adminId,
+            positionTitle: "Frontend-разработчик (React)",
+            staffCategoryId: itCategory ? itCategory.id : null,
+            experienceYears: "3.0",
+            salaryFrom: "150000",
+            salaryTo: "220000",
+            currency: "RUB",
+            description:
+                "Разработка и поддержка фронтенда внутренней HR-платформы, работа с дизайн-системой, интеграции с API.",
+            keyRequirements:
+                "Опыт с React, TypeScript, Git, понимание UX, опыт работы в продуктовой команде.",
+            status: "in_progress",
+        },
+        {
+            companyId,
+            createdBy: clientId,
+            assignedManager: adminId,
+            positionTitle: "HR generalist",
+            staffCategoryId: null,
+            experienceYears: "2.0",
+            salaryFrom: "90000",
+            salaryTo: "130000",
+            currency: "RUB",
+            description:
+                "Подбор, адаптация сотрудников, участие в HR-проектах, сопровождение сотрудников по HR-вопросам.",
+            keyRequirements:
+                "Опыт в HR от 2 лет, уверенные навыки интервью, знание базового трудового законодательства РФ.",
+            status: "wait_client",
+        },
+        {
+            companyId,
+            createdBy: clientId,
+            assignedManager: adminId,
+            positionTitle: "Операционный директор",
+            staffCategoryId: topCategory ? topCategory.id : null,
+            experienceYears: "7.0",
+            salaryFrom: "250000",
+            salaryTo: "350000",
+            currency: "RUB",
+            description:
+                "Операционное управление компанией, развитие процессов, построение KPI, взаимодействие с собственниками.",
+            keyRequirements:
+                "Опыт на позиции операционного директора или генерального директора, стратегическое мышление, управленческий опыт.",
+            status: "done",
+        },
+    ]);
 
+    console.log("Тестовые заявки созданы");
     console.log("=== Seed завершён ===");
 }
 

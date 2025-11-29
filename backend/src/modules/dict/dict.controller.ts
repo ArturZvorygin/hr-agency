@@ -1,6 +1,6 @@
 // src/modules/dict/dict.controller.ts
 import { Request, Response } from "express";
-import { db } from "../../db";
+import { db } from "../../db/db";
 import { staffCategories } from "../../db/schema/staffCategories";
 import { services } from "../../db/schema/services";
 import { eq } from "drizzle-orm";                 // <= вот это важно

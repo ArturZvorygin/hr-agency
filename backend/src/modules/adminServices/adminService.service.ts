@@ -1,5 +1,5 @@
 // src/modules/adminServices/adminService.service.ts
-import { db } from "../../db";
+import { db } from "../../db/db";
 import { services } from "../../db/schema/services";
 import { eq } from "drizzle-orm";
 

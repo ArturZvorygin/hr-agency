@@ -1,5 +1,5 @@
 // src/modules/requests/request.service.ts
-import { db } from "../../db";
+import { db } from "../../db/db";
 import { users } from "../../db/schema/users";
 import { requests } from "../../db/schema/requests";
 import { and, eq, desc } from "drizzle-orm";

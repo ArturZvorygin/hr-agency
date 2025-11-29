@@ -1,5 +1,5 @@
 // src/modules/companies/company.service.ts
-import { db } from "../../db";
+import { db } from "../../db/db";
 import { users } from "../../db/schema/users";
 import { companies } from "../../db/schema/companies";
 import { eq } from "drizzle-orm";

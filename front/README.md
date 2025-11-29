@@ -1,16 +1,52 @@
-# React + Vite
+# HR Agency Backend — «Наши люди»
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Backend-часть дипломного проекта кадрового агентства «Наши люди».
 
-Currently, two official plugins are available:
+Реализовано:
+- регистрация и авторизация клиентов и админа (JWT, access токен);
+- базовая модель данных: компании, пользователи, заявки (requests), категории персонала, услуги;
+- публичная заявка на подбор персонала;
+- клиентский кабинет (через API) для работы с заявками;
+- админский доступ для проверки функционала (через API);
+- миграции и сиды базы данных через Drizzle ORM.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+---
 
-## React Compiler
+## 1. Технологии
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- **Node.js** 20+
+- **TypeScript**
+- **Express** 5
+- **PostgreSQL** 14+
+- **Drizzle ORM** (`drizzle-orm`, `drizzle-kit`)
+- **JWT** (`jsonwebtoken`)
+- Логирование: `morgan`
+- Хеширование паролей: `bcryptjs`
 
-## Expanding the ESLint configuration
+---
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+## 2. Структура проекта (backend)
+
+```bash
+backend/
+  src/
+    server.ts          # Точка входа
+    db/
+      db.ts            # Подключение к Postgres + drizzle
+      schema/
+        users.ts
+        companies.ts
+        requests.ts
+        staffCategories.ts
+        services.ts
+        refreshTokens.ts
+      seed.ts          # Скрипт наполнения тестовыми данными
+    modules/
+      auth/            # Регистрация, логин, JWT
+      requests/        # Работа с заявками
+      dicts/           # Справочники (категории, услуги)
+      # ... другие модули
+  drizzle/             # Миграции, генерируемые drizzle-kit
+  package.json
+  drizzle.config.ts
+  .env.example (рекомендуется создать)

@@ -48,6 +48,7 @@ export class AuthController {
             return res.status(500).json({ message: "Internal server error" });
         }
     }
+
     async me(req: Request, res: Response) {
         try {
             const current = (req as any).user;
@@ -68,6 +69,40 @@ export class AuthController {
         }
     }
 
+    async refresh(req: Request, res: Response) {
+        try {
+            const { refreshToken } = req.body;
+
+            if (!refreshToken) {
+                return res.status(400).json({ message: "refreshToken обязателен" });
+            }
+
+            const result = await authService.refresh(refreshToken);
+            return res.status(200).json(result);
+        } catch (err: any) {
+            if (err.message === "INVALID_REFRESH_TOKEN") {
+                return res.status(401).json({ message: "Неверный или истёкший refreshToken" });
+            }
+            console.error("Refresh error:", err);
+            return res.status(500).json({ message: "Internal server error" });
+        }
+    }
+
+    async logout(req: Request, res: Response) {
+        try {
+            const { refreshToken } = req.body;
+
+            if (!refreshToken) {
+                return res.status(400).json({ message: "refreshToken обязателен" });
+            }
+
+            await authService.logout(refreshToken);
+            return res.status(200).json({ message: "Выход выполнен" });
+        } catch (err) {
+            console.error("Logout error:", err);
+            return res.status(500).json({ message: "Internal server error" });
+        }
+    }
 }
 
 export const authController = new AuthController();

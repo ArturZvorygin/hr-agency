@@ -1,53 +1,80 @@
+// src/pages/client/ClientDashboardPage.jsx
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import Card from "../../components/common/Card.jsx";
 import StatusBadge from "../../components/common/StatusBadge.jsx";
+import { getClientRequests, getCurrentClient } from "../../api/client.js";
 
 export default function ClientDashboardPage() {
-    // пока статические данные. Потом заменишь на fetch с бэка
-    const stats = {
-        activeRequests: 24,
-        newCandidates: 13,
-        closedVacancies: 8,
-        inSalesWork: 5,
+    const [requests, setRequests] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
+    const navigate = useNavigate();
+
+    const currentClient = getCurrentClient();
+
+    useEffect(() => {
+        let cancelled = false;
+
+        async function load() {
+            try {
+                setLoading(true);
+                setError(null);
+
+                const data = await getClientRequests();
+                // бэк возвращает { requests: [...] }
+                const list = Array.isArray(data?.requests) ? data.requests : data;
+
+                if (!cancelled) {
+                    setRequests(list || []);
+                }
+            } catch (e) {
+                console.error(e);
+                if (!cancelled) {
+                    setError("Не удалось загрузить заявки");
+                }
+            } finally {
+                if (!cancelled) {
+                    setLoading(false);
+                }
+            }
+        }
+
+        load();
+
+        return () => {
+            cancelled = true;
+        };
+    }, []);
+
+    // нормализация статуса под бейдж (в БД status = 'new' | 'in_progress' и т.п.)
+    const normalizeStatus = (status) => {
+        if (!status) return "";
+        return String(status).toUpperCase();
     };
 
-    const requests = [
-        {
-            id: 1024,
-            client: "ООО «ТехСтарт»",
-            vacancy: "Frontend-разработчик",
-            manager: "Иванова Ольга",
-            status: "IN_PROGRESS",
-            candidates: 5,
-            createdAt: "23.11.2025",
-        },
-        {
-            id: 1023,
-            client: "ИП «Петров»",
-            vacancy: "HR-менеджер",
-            manager: "Смирнов Андрей",
-            status: "NEW",
-            candidates: 1,
-            createdAt: "23.11.2025",
-        },
-        {
-            id: 1022,
-            client: "ООО «DigitalPro»",
-            vacancy: "Project Manager",
-            manager: "Иванова Ольга",
-            status: "WAIT_CLIENT",
-            candidates: 3,
-            createdAt: "22.11.2025",
-        },
-        {
-            id: 1021,
-            client: "АО «ИнфоСофт»",
-            vacancy: "QA Engineer",
-            manager: "Ким Алия",
-            status: "DONE",
-            candidates: 4,
-            createdAt: "20.11.2025",
-        },
-    ];
+    const lower = (s) => (s ? String(s).toLowerCase() : "");
+
+    // вычисляем статистику из реальных заявок
+    const activeRequests = requests.filter((r) => {
+        const s = lower(r.status);
+        return s === "new" || s === "in_progress" || s === "wait_client";
+    }).length;
+
+    const closedVacancies = requests.filter(
+        (r) => lower(r.status) === "done"
+    ).length;
+
+    const inSalesWork = requests.filter(
+        (r) => lower(r.status) === "wait_client"
+    ).length;
+
+    // пока "новые кандидаты" считаем как количество активных заявок
+    const newCandidates = activeRequests;
+
+    const userName = currentClient?.firstName || currentClient?.email || "Клиент";
+    const userCompany =
+        currentClient?.companyName || currentClient?.email || "Моя компания";
 
     return (
         <>
@@ -55,7 +82,7 @@ export default function ClientDashboardPage() {
                 <div className="header__left">
                     <h1 className="header__title">Главная – личный кабинет</h1>
                     <p className="header__subtitle">
-                        Сводка по вашим заявкам и вакансиям за сегодня
+                        Сводка по вашим заявкам и вакансиям
                     </p>
                 </div>
 
@@ -64,6 +91,7 @@ export default function ClientDashboardPage() {
                         <input
                             type="text"
                             placeholder="Поиск по заявкам и вакансиям…"
+                            // логика поиска — позже, сейчас это просто UI
                         />
                     </div>
                     <button className="header__icon-button" aria-label="Уведомления">
@@ -71,10 +99,9 @@ export default function ClientDashboardPage() {
                     </button>
                     <div className="header__user">
                         <div className="header__user-info">
-                            <span className="header__user-name">Клиент</span>
-                            <span className="header__user-role">Компания</span>
+                            <span className="header__user-name">{userName}</span>
+                            <span className="header__user-role">{userCompany}</span>
                         </div>
-                        <div className="header__user-avatar">К</div>
                     </div>
                 </div>
             </header>
@@ -82,22 +109,22 @@ export default function ClientDashboardPage() {
             <section className="cards">
                 <Card className="card--primary">
                     <div className="card__label">Активные заявки</div>
-                    <div className="card__value">{stats.activeRequests}</div>
-                    <div className="card__meta">+4 за сегодня</div>
+                    <div className="card__value">{activeRequests}</div>
+                    <div className="card__meta">+0 за сегодня</div>
                 </Card>
                 <Card>
                     <div className="card__label">Новые кандидаты</div>
-                    <div className="card__value">{stats.newCandidates}</div>
-                    <div className="card__meta">за последние 24 часа</div>
+                    <div className="card__value">{newCandidates}</div>
+                    <div className="card__meta">по активным заявкам</div>
                 </Card>
                 <Card>
                     <div className="card__label">Закрытые вакансии</div>
-                    <div className="card__value">{stats.closedVacancies}</div>
-                    <div className="card__meta">за эту неделю</div>
+                    <div className="card__value">{closedVacancies}</div>
+                    <div className="card__meta">за всё время</div>
                 </Card>
                 <Card>
                     <div className="card__label">В работе у отдела продаж</div>
-                    <div className="card__value">{stats.inSalesWork}</div>
+                    <div className="card__value">{inSalesWork}</div>
                     <div className="card__meta">ожидают согласования</div>
                 </Card>
             </section>
@@ -114,7 +141,7 @@ export default function ClientDashboardPage() {
                         <button className="btn btn--ghost">Экспорт</button>
                         <button
                             className="btn btn--primary"
-                            onClick={() => (window.location.href = "/request")}
+                            onClick={() => navigate("/request")}
                         >
                             Новая заявка
                         </button>
@@ -122,34 +149,56 @@ export default function ClientDashboardPage() {
                 </div>
 
                 <div className="table-wrapper">
-                    <table className="table">
-                        <thead>
-                        <tr>
-                            <th>ID</th>
-                            <th>Компания</th>
-                            <th>Вакансия</th>
-                            <th>Ответственный</th>
-                            <th>Статус</th>
-                            <th>Кандидатов</th>
-                            <th>Создана</th>
-                        </tr>
-                        </thead>
-                        <tbody>
-                        {requests.map((r) => (
-                            <tr key={r.id}>
-                                <td>#{r.id}</td>
-                                <td>{r.client}</td>
-                                <td>{r.vacancy}</td>
-                                <td>{r.manager}</td>
-                                <td>
-                                    <StatusBadge status={r.status} />
-                                </td>
-                                <td>{r.candidates}</td>
-                                <td>{r.createdAt}</td>
+                    {loading && <div className="table-loading">Загрузка…</div>}
+                    {error && (
+                        <div className="form-status form-status--error">
+                            {error}
+                        </div>
+                    )}
+                    {!loading && !error && requests.length === 0 && (
+                        <div className="table-empty">
+                            У вас пока нет заявок. Оставьте первую через форму.
+                        </div>
+                    )}
+
+                    {!loading && !error && requests.length > 0 && (
+                        <table className="table">
+                            <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Вакансия</th>
+                                <th>Статус</th>
+                                <th>Создана</th>
                             </tr>
-                        ))}
-                        </tbody>
-                    </table>
+                            </thead>
+                            <tbody>
+                            {requests.map((r) => (
+                                <tr
+                                    key={r.id}
+                                    className="table-row-clickable"
+                                    onClick={() =>
+                                        navigate(`/client/requests/${r.id}`)
+                                    }
+                                >
+                                    <td>#{String(r.id).slice(0, 8)}</td>
+                                    <td>{r.positionTitle}</td>
+                                    <td>
+                                        <StatusBadge
+                                            status={normalizeStatus(r.status)}
+                                        />
+                                    </td>
+                                    <td>
+                                        {r.createdAt
+                                            ? new Date(
+                                                r.createdAt
+                                            ).toLocaleDateString("ru-RU")
+                                            : "—"}
+                                    </td>
+                                </tr>
+                            ))}
+                            </tbody>
+                        </table>
+                    )}
                 </div>
             </section>
         </>

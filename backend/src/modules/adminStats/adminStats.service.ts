@@ -1,5 +1,5 @@
 // src/modules/adminStats/adminStats.service.ts
-import { db } from "../../db";
+import { db } from "../../db/db";
 import { requests } from "../../db/schema/requests";
 import { companies } from "../../db/schema/companies";
 

@@ -1,19 +1,18 @@
 // src/pages/auth/LoginPage.jsx
-import { useState, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import Input from "../../components/common/Input.jsx";
 import Button from "../../components/common/Button.jsx";
-import { loginClient } from "../../api/client.js";
+import { loginClient, isClientAuthenticated } from "../../api/client.js";
 
 export default function LoginPage() {
     const [form, setForm] = useState({ email: "", password: "" });
     const [error, setError] = useState(null);
     const navigate = useNavigate();
+    const location = useLocation();
 
-    // Если уже есть токен — сразу в кабинет
     useEffect(() => {
-        const token = localStorage.getItem("token");
-        if (token) {
+        if (isClientAuthenticated()) {
             navigate("/client/dashboard", { replace: true });
         }
     }, [navigate]);
@@ -27,9 +26,20 @@ export default function LoginPage() {
         e.preventDefault();
         setError(null);
         try {
-            const token = await loginClient(form);
-            localStorage.setItem("token", token);
-            navigate("/client/dashboard");
+            const data = await loginClient(form);
+
+            if (!data.user) {
+                setError("Ответ сервера без данных пользователя");
+                return;
+            }
+
+            if (data.user.role !== "client") {
+                setError("У вас нет доступа в клиентский кабинет");
+                return;
+            }
+
+            const from = location.state?.from || "/client/dashboard";
+            navigate(from, { replace: true });
         } catch (err) {
             console.error(err);
             setError("Неверный логин или пароль");
@@ -66,20 +76,15 @@ export default function LoginPage() {
                         <div className="form-status form-status--error">{error}</div>
                     )}
 
-                    <div className="auth-form__buttons">
-                        <Button type="submit">Войти</Button>
-                        <Button
-                            type="button"
-                            variant="ghost"
-                            onClick={() => navigate("/")}
-                        >
-                            Назад
-                        </Button>
-                    </div>
+                    <Button type="submit">Войти</Button>
 
                     <div className="auth-form__links">
                         <Link to="/register">Зарегистрироваться</Link>
                         <Link to="/forgot-password">Забыли пароль?</Link>
+                    </div>
+
+                    <div className="auth-form__links">
+                        <Link to="/">← Вернуться на главную</Link>
                     </div>
                 </form>
             </div>

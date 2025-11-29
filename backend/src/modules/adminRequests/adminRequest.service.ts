@@ -1,5 +1,5 @@
 // src/modules/adminRequests/adminRequest.service.ts
-import { db } from "../../db";
+import { db } from "../../db/db";
 import { requests } from "../../db/schema/requests";
 import { and, desc, eq } from "drizzle-orm";
 

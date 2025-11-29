@@ -1,13 +1,17 @@
 // src/layouts/ClientLayout.jsx
 import { NavLink, Outlet, Navigate, useLocation } from "react-router-dom";
 import logo from "../assets/logo-main.svg";
+import { getCurrentClient, isClientAuthenticated } from "../api/client.js";
 
 export default function ClientLayout() {
     const location = useLocation();
-    const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
 
-    // Если нет токена — отправляем на /login
-    if (!token) {
+    // проверка авторизации через хелпер
+    const authed = isClientAuthenticated();
+    const currentClient = getCurrentClient();
+
+    // защита роутов: если не залогинен — уводим на /login
+    if (!authed) {
         return (
             <Navigate
                 to="/login"
@@ -17,14 +21,38 @@ export default function ClientLayout() {
         );
     }
 
+    const userLabel =
+        currentClient?.firstName ||
+        currentClient?.email ||
+        "Клиент";
+
+    const initials =
+        userLabel?.[0]?.toUpperCase() || "К";
+
     return (
         <div className="app">
             <aside className="sidebar">
+                {/* Лого */}
                 <div className="sidebar__logo">
                     <img src={logo} alt="Наши люди" className="sidebar__logo-img" />
                     <span className="sidebar__logo-text">Наши люди</span>
                 </div>
 
+                {/* Блок пользователя в сайдбаре */}
+                <div className="sidebar__user">
+                    <div className="sidebar__user-avatar">{initials}</div>
+                    <div className="sidebar__user-info">
+                        <div className="sidebar__user-name">
+                            {userLabel}
+                        </div>
+                        <div className="sidebar__user-role">
+                            {/* тут просто пояснение, кто это */}
+                            Клиент компании
+                        </div>
+                    </div>
+                </div>
+
+                {/* Меню клиента */}
                 <nav className="sidebar__nav">
                     <NavLink
                         to="/client/dashboard"
@@ -34,6 +62,11 @@ export default function ClientLayout() {
                     >
                         Главная
                     </NavLink>
+
+                    <NavLink to="/" className="sidebar__item">
+                        На сайт
+                    </NavLink>
+
                     <NavLink
                         to="/client/requests"
                         className={({ isActive }) =>
@@ -42,6 +75,7 @@ export default function ClientLayout() {
                     >
                         Мои заявки
                     </NavLink>
+
                     <NavLink
                         to="/client/profile"
                         className={({ isActive }) =>
@@ -56,7 +90,9 @@ export default function ClientLayout() {
                         className="sidebar__item sidebar__item--danger"
                         onClick={() => {
                             localStorage.removeItem("token");
-                            window.location.href = "/login";
+                            localStorage.removeItem("refreshToken");
+                            localStorage.removeItem("clientUser");
+                            window.location.href = "/";
                         }}
                     >
                         Выйти
