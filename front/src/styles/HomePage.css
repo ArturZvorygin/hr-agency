@@ -592,3 +592,341 @@
         padding: 32px 16px 40px;
     }
 }
+
+.public-header {
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    background-color: #ffffff;
+    border-bottom: 1px solid #e5e7eb;
+    backdrop-filter: blur(8px);
+}
+
+.public-header-inner {
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+}
+
+/* ====== Логотип ====== */
+
+.public-logo {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    text-decoration: none;
+}
+
+.public-logo-mark {
+    width: 32px;
+    height: 32px;
+    border-radius: 999px;
+    border: 1px solid #e5e7eb;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    line-height: 1;
+    background: #f9fafb;
+}
+
+.public-logo-text {
+    font-weight: 600;
+    font-size: 18px;
+    letter-spacing: 0.02em;
+    color: #111827;
+}
+
+/* ====== Навигация по секциям ====== */
+
+.public-nav {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex: 1;
+    justify-content: center;
+}
+
+.public-nav-link {
+    border: none;
+    background: transparent;
+    padding: 6px 4px;
+    font-size: 14px;
+    color: #4b5563;
+    cursor: pointer;
+    position: relative;
+    transition: color 0.15s ease;
+}
+
+.public-nav-link::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: -4px;
+    height: 2px;
+    border-radius: 999px;
+    background: linear-gradient(90deg, #f97316, #ec4899);
+    opacity: 0;
+    transform: scaleX(0.6);
+    transform-origin: center;
+    transition: opacity 0.15s ease, transform 0.15s ease;
+}
+
+.public-nav-link:hover {
+    color: #111827;
+}
+
+.public-nav-link:hover::after {
+    opacity: 1;
+    transform: scaleX(1);
+}
+
+/* ====== Правый блок: пользователь + кнопки ====== */
+
+.public-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+/* Обёртка: аватар + кнопка "Выйти" */
+
+.public-header-user-wrap {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 4px 8px;
+    border-radius: 999px;
+    background: #f9fafb;
+    border: 1px solid #e5e7eb;
+}
+
+/* Блок юзера */
+
+.public-header-user {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.public-header-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 999px;
+    background: linear-gradient(135deg, #f97316, #ec4899);
+    color: #ffffff;
+    font-size: 14px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.public-header-user-text {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.public-header-user-name {
+    font-size: 13px;
+    font-weight: 600;
+    color: #111827;
+    max-width: 160px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.public-header-user-role {
+    font-size: 11px;
+    color: #6b7280;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+/* ====== Кнопки ====== */
+
+.btn {
+    border-radius: 999px;
+    border: 1px solid transparent;
+    padding: 8px 14px;
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 1.2;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    transition:
+            background-color 0.15s ease,
+            color 0.15s ease,
+            border-color 0.15s ease,
+            box-shadow 0.15s ease;
+}
+
+.btn--small {
+    padding: 6px 12px;
+    font-size: 12px;
+}
+
+/* вторичная (серо-белая) */
+
+.btn--muted {
+    background-color: #f9fafb;
+    border-color: #e5e7eb;
+    color: #374151;
+}
+
+.btn--muted:hover {
+    background-color: #f3f4f6;
+}
+
+/* основная (оранжевый/HR-акцент) */
+
+.btn--primary {
+    background: linear-gradient(135deg, #f97316, #ec4899);
+    color: #ffffff;
+    border-color: transparent;
+    box-shadow: 0 6px 18px rgba(249, 115, 22, 0.25);
+}
+
+.btn--primary:hover {
+    box-shadow: 0 8px 22px rgba(249, 115, 22, 0.35);
+    transform: translateY(-0.5px);
+}
+
+/* ====== Мобильная адаптация ====== */
+
+@media (max-width: 768px) {
+    .public-header-inner {
+        padding: 10px 12px;
+        gap: 12px;
+    }
+
+    .public-nav {
+        display: none; /* если нужно бургер — можно потом добавить */
+    }
+
+    .public-header-actions {
+        gap: 8px;
+    }
+
+    .public-header-user-name {
+        max-width: 120px;
+    }
+
+    .btn {
+        padding: 7px 10px;
+        font-size: 13px;
+    }
+
+    .btn--small {
+        padding: 5px 9px;
+        font-size: 11px;
+    }
+}
+/* ====== Дропдаун пользователя в шапке ====== */
+
+.public-header-user-dropdown {
+    position: relative;
+}
+
+.public-header-user-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 10px;
+    border-radius: 999px;
+    border: 1px solid #e5e7eb;
+    background-color: #f9fafb;
+    cursor: pointer;
+    transition:
+            background-color 0.15s ease,
+            box-shadow 0.15s ease,
+            border-color 0.15s ease;
+}
+
+.public-header-user-toggle:hover {
+    background-color: #f3f4f6;
+    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.08);
+    border-color: #e5e7eb;
+}
+
+.public-header-user-chevron {
+    font-size: 12px;
+    color: #6b7280;
+    transition: transform 0.15s ease, color 0.15s ease;
+}
+
+.public-header-user-chevron--open {
+    transform: rotate(180deg);
+    color: #4b5563;
+}
+
+/* Само меню */
+
+.public-header-user-menu {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    margin-top: 6px;
+    min-width: 180px;
+    padding: 6px;
+    border-radius: 12px;
+    background-color: #ffffff;
+    box-shadow: 0 12px 30px rgba(15, 23, 42, 0.16);
+    border: 1px solid #e5e7eb;
+    z-index: 60;
+}
+
+.public-header-user-menu-item {
+    width: 100%;
+    border: none;
+    background: transparent;
+    text-align: left;
+    font-size: 13px;
+    padding: 8px 10px;
+    border-radius: 8px;
+    color: #111827;
+    cursor: pointer;
+    transition: background-color 0.12s ease, color 0.12s ease;
+}
+
+.public-header-user-menu-item:hover {
+    background-color: #f3f4f6;
+}
+
+.public-header-user-menu-item--danger {
+    color: #b91c1c;
+}
+
+.public-header-user-menu-item--danger:hover {
+    background-color: #fef2f2;
+}
+
+.public-header-user-menu-divider {
+    height: 1px;
+    margin: 4px 0;
+    background-color: #e5e7eb;
+}
+
+/* на мобилке можно чуть сжать */
+
+@media (max-width: 768px) {
+    .public-header-user-toggle {
+        padding: 4px 8px;
+    }
+
+    .public-header-user-menu {
+        min-width: 160px;
+    }
+}

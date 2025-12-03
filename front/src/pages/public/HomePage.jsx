@@ -1,5 +1,5 @@
 // src/pages/public/HomePage.jsx
-import React, { useState } from "react";
+import React, {useEffect, useRef, useState} from "react";
 import { useNavigate } from "react-router-dom";
 import heroImg from "../../assets/hero-office.jpg";
 import client1 from "../../assets/client-1.png";
@@ -11,8 +11,9 @@ import {
     getCurrentClient,
     isClientAuthenticated,
     getCurrentAdmin,
-    isAdminAuthenticated,
+    isAdminAuthenticated, logoutAdmin, logoutClient,
 } from "../../api/client.js";
+// как у тебя подключено
 
 // ====== HEADER NAV (якоря внутри главной) ======
 
@@ -129,23 +130,28 @@ const REVIEWS = [
     },
 ];
 
-
 function PublicHeader() {
     const navigate = useNavigate();
+    const [menuOpen, setMenuOpen] = useState(false);
+    const dropdownRef = useRef(null);
 
     const handleNavClick = (hash) => {
         if (!hash || !hash.startsWith("#")) return;
+
         const el = document.querySelector(hash);
         if (el) {
             el.scrollIntoView({ behavior: "smooth", block: "start" });
         }
     };
 
-    // кто сейчас залогинен
-    const client = getCurrentClient();
-    const admin = getCurrentAdmin();
-    const clientAuthed = isClientAuthenticated();
+    // Авторизация
     const adminAuthed = isAdminAuthenticated();
+    const clientAuthed = isClientAuthenticated();
+
+    const admin = adminAuthed ? getCurrentAdmin() : null;
+    const client = clientAuthed ? getCurrentClient() : null;
+
+    const isLoggedIn = adminAuthed || clientAuthed;
 
     const handleCabinetClick = () => {
         if (adminAuthed) {
@@ -157,25 +163,78 @@ function PublicHeader() {
         }
     };
 
+    const handleProfileClick = () => {
+        // если есть отдельные страницы профиля — подставишь свои роуты
+        if (adminAuthed) {
+            navigate("/admin/profile");
+        } else if (clientAuthed) {
+            navigate("/client/profile");
+        } else {
+            navigate("/login");
+        }
+        setMenuOpen(false);
+    };
+
+    const handleLogout = async () => {
+        try {
+            if (adminAuthed) {
+                await logoutAdmin();
+            } else if (clientAuthed) {
+                await logoutClient();
+            }
+        } finally {
+            navigate("/");
+            setMenuOpen(false);
+        }
+    };
+
+    // клик вне дропдауна
+    useEffect(() => {
+        const onClick = (e) => {
+            if (!dropdownRef.current) return;
+            if (!dropdownRef.current.contains(e.target)) {
+                setMenuOpen(false);
+            }
+        };
+
+        if (menuOpen) {
+            document.addEventListener("click", onClick);
+        } else {
+            document.removeEventListener("click", onClick);
+        }
+
+        return () => document.removeEventListener("click", onClick);
+    }, [menuOpen]);
+
+    // Подпись и инициалы пользователя
     let userLabel = "";
+    let roleLabel = "";
     let initials = "";
 
     if (adminAuthed && admin) {
-        userLabel = admin.firstName || admin.email || "Администратор";
+        const first = admin.firstName?.trim();
+        const last = admin.lastName?.trim();
+        const fullName = [first, last].filter(Boolean).join(" ");
+
+        userLabel = fullName || admin.email || "Администратор";
+        roleLabel = "Администратор";
     } else if (clientAuthed && client) {
-        userLabel = client.firstName || client.email || "Клиент";
+        const first = client.firstName?.trim();
+        const last = client.lastName?.trim();
+        const fullName = [first, last].filter(Boolean).join(" ");
+
+        userLabel = fullName || client.email || "Клиент";
+        roleLabel = "Клиент";
     }
 
     if (userLabel) {
         initials = userLabel[0].toUpperCase();
     }
 
-    const isLoggedIn = adminAuthed || clientAuthed;
-
     return (
         <header className="public-header">
             <div className="public-header-inner">
-                {/* Логотип слева, ведёт на главную */}
+                {/* Логотип — на главную */}
                 <div
                     className="public-logo"
                     onClick={() => navigate("/")}
@@ -185,7 +244,7 @@ function PublicHeader() {
                     <span className="public-logo-text">Наши люди</span>
                 </div>
 
-                {/* Якоря по секциям главной */}
+                {/* Навигация по секциям лендинга */}
                 <nav className="public-nav">
                     {NAV_LINKS.map((item) => (
                         <button
@@ -202,43 +261,103 @@ function PublicHeader() {
                 {/* Правый блок */}
                 <div className="public-header-actions">
                     {isLoggedIn && (
-                        <div className="public-header-user">
-                            <div className="public-header-avatar">
-                                {initials || "•"}
-                            </div>
-                            <div className="public-header-user-text">
-                                <div className="public-header-user-name">
-                                    {userLabel}
+                        <div
+                            className="public-header-user-dropdown"
+                            ref={dropdownRef}
+                        >
+                            <button
+                                type="button"
+                                className="public-header-user-toggle"
+                                onClick={() => setMenuOpen((prev) => !prev)}
+                            >
+                                <div className="public-header-avatar">
+                                    {initials || "•"}
                                 </div>
-                                <div className="public-header-user-role">
-                                    {adminAuthed ? "Администратор" : "Клиент"}
+                                <div className="public-header-user-text">
+                                    <div className="public-header-user-name">
+                                        {userLabel}
+                                    </div>
+                                    <div className="public-header-user-role">
+                                        {roleLabel}
+                                    </div>
                                 </div>
-                            </div>
+                                <span
+                                    className={
+                                        "public-header-user-chevron" +
+                                        (menuOpen
+                                            ? " public-header-user-chevron--open"
+                                            : "")
+                                    }
+                                >
+                                    ▾
+                                </span>
+                            </button>
+
+                            {menuOpen && (
+                                <div className="public-header-user-menu">
+                                    <button
+                                        type="button"
+                                        className="public-header-user-menu-item"
+                                        onClick={handleCabinetClick}
+                                    >
+                                        В кабинет
+                                    </button>
+                                    <button
+                                        type="button"
+                                        className="public-header-user-menu-item"
+                                        onClick={handleProfileClick}
+                                    >
+                                        Профиль
+                                    </button>
+                                    <div className="public-header-user-menu-divider" />
+                                    <button
+                                        type="button"
+                                        className="public-header-user-menu-item public-header-user-menu-item--danger"
+                                        onClick={handleLogout}
+                                    >
+                                        Выйти
+                                    </button>
+                                </div>
+                            )}
                         </div>
                     )}
 
                     {!isLoggedIn && (
-                        <button
-                            type="button"
-                            className="btn btn--muted"
-                            onClick={() => navigate("/login")}
-                        >
-                            Вход
-                        </button>
+                        <>
+                            <button
+                                type="button"
+                                className="btn btn--muted"
+                                onClick={() => navigate("/login")}
+                            >
+                                Вход
+                            </button>
+                            <button
+                                type="button"
+                                className="btn btn--primary"
+                                onClick={() => navigate("/request")}
+                            >
+                                Оставить заявку
+                            </button>
+                        </>
                     )}
 
-                    <button
-                        type="button"
-                        className="btn btn--primary"
-                        onClick={isLoggedIn ? handleCabinetClick : () => navigate("/request")}
-                    >
-                        {isLoggedIn ? "В кабинет" : "Оставить заявку"}
-                    </button>
+                    {/* если хочешь, чтобы у авторизованных тоже была CTA-кнопка */}
+                    {isLoggedIn && (
+                        <button
+                            type="button"
+                            className="btn btn--primary"
+                            onClick={() => navigate("/request")}
+                        >
+                            Оставить заявку
+                        </button>
+                    )}
                 </div>
             </div>
         </header>
     );
 }
+
+
 
 function PublicFooter() {
     return (
