@@ -11,5 +11,7 @@ router.get("/me", authGuard, (req, res) => authController.me(req, res));
 // refresh + logout по refreshToken из тела
 router.post("/refresh", (req, res) => authController.refresh(req, res));
 router.post("/logout", (req, res) => authController.logout(req, res));
-
+router.post("/change-password", authGuard, (req, res) =>
+    authController.changePassword(req, res)
+);
 export default router;

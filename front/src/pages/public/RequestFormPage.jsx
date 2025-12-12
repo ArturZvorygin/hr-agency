@@ -157,6 +157,8 @@ export default function RequestFormPage() {
                         {status === "success" && (
                             <span className="form-status form-status--success">
                                 Заявка отправлена. Мы свяжемся с вами в ближайшее время.
+                                Ваш временный пароль password123, Вы сможете сменить его в личном кабинете.
+                                Для входа пропишите свою почту и пароль <strong>password123</strong>.
                             </span>
                         )}
                         {status === "error" && (

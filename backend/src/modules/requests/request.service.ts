@@ -45,20 +45,30 @@ class RequestService {
                 currency: dto.currency || "KGS",
                 description: dto.description,
                 keyRequirements: dto.keyRequirements,
-                status: "new"
-            } as any) // для диплома можно закастить, чтобы не ругался TS
+                status: "new",
+            } as any)
             .returning();
 
         return created;
     }
 
+    // "Мои заявки":
+    // - client  → только свои (createdBy = user.id)
+    // - manager/admin → все заявки компании
     async listMyRequests(userId: string) {
         const user = await this.getUserWithCompany(userId);
+
+        const companyFilter = eq(requests.companyId, user.companyId!);
+
+        const whereClause =
+            user.role === "client"
+                ? and(companyFilter, eq(requests.createdBy, user.id))
+                : companyFilter; // manager/admin видят всё по компании
 
         const list = await db
             .select()
             .from(requests)
-            .where(eq(requests.companyId, user.companyId!))
+            .where(whereClause)
             .orderBy(desc(requests.createdAt));
 
         return list;
@@ -67,15 +77,20 @@ class RequestService {
     async getMyRequestById(userId: string, requestId: string) {
         const user = await this.getUserWithCompany(userId);
 
+        const base = and(
+            eq(requests.id, requestId),
+            eq(requests.companyId, user.companyId!)
+        );
+
+        const whereClause =
+            user.role === "client"
+                ? and(base, eq(requests.createdBy, user.id))
+                : base;
+
         const [reqItem] = await db
             .select()
             .from(requests)
-            .where(
-                and(
-                    eq(requests.id, requestId),
-                    eq(requests.companyId, user.companyId!)
-                )
-            )
+            .where(whereClause)
             .limit(1);
 
         if (!reqItem) throw new Error("REQUEST_NOT_FOUND");

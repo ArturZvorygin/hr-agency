@@ -103,6 +103,45 @@ export class AuthController {
             return res.status(500).json({ message: "Internal server error" });
         }
     }
+    // src/modules/auth/auth.controller.ts
+
+    async changePassword(req: Request, res: Response) {
+        try {
+            const current = (req as any).user;
+
+            if (!current || !current.userId) {
+                return res.status(401).json({ message: "Требуется авторизация" });
+            }
+
+            const { currentPassword, newPassword } = req.body;
+
+            if (!currentPassword || !newPassword) {
+                return res
+                    .status(400)
+                    .json({ message: "currentPassword и newPassword обязательны" });
+            }
+
+            if (String(newPassword).length < 6) {
+                return res
+                    .status(400)
+                    .json({ message: "Новый пароль должен быть не короче 6 символов" });
+            }
+
+            await authService.changePassword(current.userId, currentPassword, newPassword);
+
+            return res.status(200).json({ message: "Пароль успешно изменён" });
+        } catch (err: any) {
+            if (err.message === "USER_NOT_FOUND") {
+                return res.status(404).json({ message: "Пользователь не найден" });
+            }
+            if (err.message === "INVALID_CURRENT_PASSWORD") {
+                return res.status(400).json({ message: "Текущий пароль неверный" });
+            }
+            console.error("Change password error:", err);
+            return res.status(500).json({ message: "Internal server error" });
+        }
+    }
+
 }
 
 export const authController = new AuthController();

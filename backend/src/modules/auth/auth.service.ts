@@ -210,6 +210,30 @@ export class AuthService {
             .set({ revokedAt: new Date() })
             .where(eq(refreshTokens.token, refreshToken));
     }
+    // src/modules/auth/auth.service.ts
+
+    async changePassword(userId: string, currentPassword: string, newPassword: string) {
+        const user = await db.query.users.findFirst({
+            where: (u, { eq }) => eq(u.id, userId)
+        });
+
+        if (!user) {
+            throw new Error("USER_NOT_FOUND");
+        }
+
+        const ok = await comparePassword(currentPassword, user.passwordHash);
+        if (!ok) {
+            throw new Error("INVALID_CURRENT_PASSWORD");
+        }
+
+        const newHash = await hashPassword(newPassword);
+
+        await db
+            .update(users)
+            .set({ passwordHash: newHash })
+            .where(eq(users.id, user.id));
+    }
+
 }
 
 export const authService = new AuthService();

@@ -7,7 +7,7 @@ export default function ClientRequestsPage() {
     const [items, setItems] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
-
+    console.log(items, loading, error, "items, loading, error")
     useEffect(() => {
         let cancelled = false;
 

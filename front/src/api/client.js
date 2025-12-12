@@ -505,3 +505,11 @@ export async function adminGetServices() {
         admin: true,
     });
 }
+// POST /api/auth/change-password
+export async function changeClientPassword(currentPassword, newPassword) {
+    return request("/auth/change-password", {
+        method: "POST",
+        auth: true,
+        body: { currentPassword, newPassword },
+    });
+}
