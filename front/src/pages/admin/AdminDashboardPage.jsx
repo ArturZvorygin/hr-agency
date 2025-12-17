@@ -41,15 +41,13 @@ export default function AdminDashboardPage() {
         };
     }, []);
 
-    const lower = (s) => (s ? String(s).toLowerCase() : "");
-
-    // Считаем реальные цифры по статусам
-    const newRequests = rows.filter((r) => lower(r.status) === "new").length;
+    // Считаем реальные цифры по статусам (используем новые статусы)
+    const newRequests = rows.filter((r) => r.status === "NEW" || r.status === "DRAFT").length;
     const inWork = rows.filter((r) => {
-        const s = lower(r.status);
-        return s === "in_progress" || s === "wait_client";
+        const s = r.status;
+        return s === "IN_PROGRESS" || s === "SOURCING" || s === "INTERVIEWS";
     }).length;
-    const closed = rows.filter((r) => lower(r.status) === "done").length;
+    const closed = rows.filter((r) => r.status === "CLOSED").length;
 
     // Кол-во клиентов по уникальным companyId / companyName
     const clientKeys = new Set(

@@ -11,9 +11,12 @@ import {
     getCurrentClient,
     isClientAuthenticated,
     getCurrentAdmin,
-    isAdminAuthenticated, logoutAdmin, logoutClient,
+    isAdminAuthenticated,
+    logoutAdmin,
+    logoutClient,
+    getServicesDict,
+    getStaffCategoriesDict,
 } from "../../api/client.js";
-// как у тебя подключено
 
 // ====== HEADER NAV (якоря внутри главной) ======
 
@@ -65,53 +68,7 @@ const CLIENTS = [
     },
 ];
 
-const SERVICES = [
-    {
-        id: "mini",
-        label: "Пакет “Мини”",
-        description:
-            "Оптимальное решение, когда нужно оперативно закрыть одну ключевую вакансию без значительных затрат времени и ресурсов.",
-        list: [
-            "Анализ вакансии и портрета кандидата",
-            "Поиск кандидатов по базе и рынку",
-            "Предварительный отбор и интервью",
-            "Презентация 2–3 лучших кандидатов",
-        ],
-        timeline:
-            "Сроки: от 5 до 10 рабочих дней с момента подписания договора и описания вакансии.",
-        price: "5 000 руб.",
-    },
-    {
-        id: "optimal",
-        label: "Пакет “Оптимальный”",
-        description:
-            "Подходит компаниям, которым нужно закрыть несколько позиций в одном отделе и выстроить команду под задачу.",
-        list: [
-            "Анализ команды и ролей",
-            "Подбор нескольких кандидатов в отдел",
-            "Сопровождение собеседований",
-            "Рекомендации по офферам и адаптации",
-        ],
-        timeline:
-            "Сроки: от 10 до 20 рабочих дней в зависимости от количества позиций.",
-        price: "от 15 000 руб.",
-    },
-    {
-        id: "maxi",
-        label: "Пакет “Макси”",
-        description:
-            "Решение “под ключ” для запуска нового направления или филиала: формирование команды с нуля.",
-        list: [
-            "HR-стратегия под задачу бизнеса",
-            "Подбор ключевых и линейных позиций",
-            "Оценка soft и hard skills",
-            "Сопровождение выхода и испытательного срока",
-        ],
-        timeline:
-            "Сроки обсуждаются индивидуально в зависимости от масштаба задачи.",
-        price: "от 30 000 руб.",
-    },
-];
+// SERVICES теперь загружаются из БД динамически
 
 const REVIEWS = [
     {
@@ -403,9 +360,39 @@ function PublicFooter() {
 
 export default function HomePage() {
     const navigate = useNavigate();
-    const [activeServiceId, setActiveServiceId] = useState("mini");
+    const [services, setServices] = useState([]);
+    const [categories, setCategories] = useState([]);
+    const [loadingServices, setLoadingServices] = useState(true);
+    const [activeServiceId, setActiveServiceId] = useState(null);
 
-    const activeService = SERVICES.find((s) => s.id === activeServiceId);
+    useEffect(() => {
+        async function loadData() {
+            try {
+                setLoadingServices(true);
+                const [servicesData, categoriesData] = await Promise.all([
+                    getServicesDict(),
+                    getStaffCategoriesDict(),
+                ]);
+
+                const servicesList = servicesData?.items || [];
+                setServices(servicesList);
+                setCategories(categoriesData?.items || []);
+
+                // Устанавливаем первую услугу как активную
+                if (servicesList.length > 0) {
+                    setActiveServiceId(servicesList[0].id);
+                }
+            } catch (e) {
+                console.error("Ошибка загрузки данных:", e);
+            } finally {
+                setLoadingServices(false);
+            }
+        }
+
+        loadData();
+    }, []);
+
+    const activeService = services.find((s) => s.id === activeServiceId);
 
     return (
         <div className="home">
@@ -514,46 +501,57 @@ export default function HomePage() {
                     <h2>Услуги</h2>
                 </div>
 
-                <div className="services-layout">
-                    <div className="service-tabs">
-                        {SERVICES.map((s) => (
-                            <button
-                                key={s.id}
-                                type="button"
-                                className={
-                                    "service-tab" +
-                                    (s.id === activeServiceId ? " service-tab--active" : "")
-                                }
-                                onClick={() => setActiveServiceId(s.id)}
-                            >
-                                {s.label}
-                            </button>
-                        ))}
+                {loadingServices && (
+                    <div style={{ textAlign: "center", padding: "2rem" }}>
+                        Загружаем услуги...
                     </div>
+                )}
 
-                    <div className="service-content">
-                        <p className="service-description">
-                            {activeService.description}
-                        </p>
-                        <p>Что входит:</p>
-                        <ul className="service-list">
-                            {activeService.list.map((item) => (
-                                <li key={item}>{item}</li>
+                {!loadingServices && services.length === 0 && (
+                    <div style={{ textAlign: "center", padding: "2rem" }}>
+                        Услуги пока не добавлены
+                    </div>
+                )}
+
+                {!loadingServices && services.length > 0 && (
+                    <div className="services-layout">
+                        <div className="service-tabs">
+                            {services.map((s) => (
+                                <button
+                                    key={s.id}
+                                    type="button"
+                                    className={
+                                        "service-tab" +
+                                        (s.id === activeServiceId ? " service-tab--active" : "")
+                                    }
+                                    onClick={() => setActiveServiceId(s.id)}
+                                >
+                                    {s.name}
+                                </button>
                             ))}
-                        </ul>
-                        <p className="service-timeline">{activeService.timeline}</p>
-
-                        <div className="service-bottom-row">
-                            <Button
-                                variant="primary"
-                                onClick={() => navigate("/request")}
-                            >
-                                Подать заявку
-                            </Button>
-                            <div className="service-price">{activeService.price}</div>
                         </div>
+
+                        {activeService && (
+                            <div className="service-content">
+                                <p className="service-description">
+                                    {activeService.description || "Описание услуги"}
+                                </p>
+
+                                <div className="service-bottom-row">
+                                    <Button
+                                        variant="primary"
+                                        onClick={() => navigate("/request")}
+                                    >
+                                        Подать заявку
+                                    </Button>
+                                    <div className="service-price">
+                                        {activeService.basePrice ? `от ${activeService.basePrice} ₽` : "Цена по запросу"}
+                                    </div>
+                                </div>
+                            </div>
+                        )}
                     </div>
-                </div>
+                )}
             </section>
 
             {/* ОТЗЫВЫ */}

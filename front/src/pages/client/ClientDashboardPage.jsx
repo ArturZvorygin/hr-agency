@@ -57,16 +57,16 @@ export default function ClientDashboardPage() {
 
     // вычисляем статистику из реальных заявок
     const activeRequests = requests.filter((r) => {
-        const s = lower(r.status);
-        return s === "new" || s === "in_progress" || s === "wait_client";
+        const s = r.status;
+        return s === "NEW" || s === "IN_PROGRESS" || s === "SOURCING" || s === "INTERVIEWS";
     }).length;
 
     const closedVacancies = requests.filter(
-        (r) => lower(r.status) === "done"
+        (r) => r.status === "CLOSED"
     ).length;
 
     const inSalesWork = requests.filter(
-        (r) => lower(r.status) === "wait_client"
+        (r) => r.status === "SOURCING" || r.status === "INTERVIEWS"
     ).length;
 
     // пока "новые кандидаты" считаем как количество активных заявок
@@ -132,6 +132,46 @@ export default function ClientDashboardPage() {
             <section className="table-block">
                 <div className="table-block__header">
                     <div>
+                        <h2 className="table-block__title">Личные данные</h2>
+                        <p className="table-block__subtitle">
+                            Информация о вашем аккаунте и компании
+                        </p>
+                    </div>
+                </div>
+
+                <div style={{ padding: "20px", backgroundColor: "#f9f9f9", borderRadius: "8px", marginBottom: "24px" }}>
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
+                        <div>
+                            <div style={{ fontSize: "14px", color: "#666", marginBottom: "4px" }}>Email</div>
+                            <div style={{ fontSize: "16px", fontWeight: "500" }}>{currentClient?.email || "—"}</div>
+                        </div>
+                        <div>
+                            <div style={{ fontSize: "14px", color: "#666", marginBottom: "4px" }}>Имя</div>
+                            <div style={{ fontSize: "16px", fontWeight: "500" }}>{currentClient?.firstName || "—"}</div>
+                        </div>
+                        <div>
+                            <div style={{ fontSize: "14px", color: "#666", marginBottom: "4px" }}>Фамилия</div>
+                            <div style={{ fontSize: "16px", fontWeight: "500" }}>{currentClient?.lastName || "—"}</div>
+                        </div>
+                        <div>
+                            <div style={{ fontSize: "14px", color: "#666", marginBottom: "4px" }}>Компания</div>
+                            <div style={{ fontSize: "16px", fontWeight: "500" }}>{currentClient?.companyName || "—"}</div>
+                        </div>
+                        <div>
+                            <div style={{ fontSize: "14px", color: "#666", marginBottom: "4px" }}>Телефон</div>
+                            <div style={{ fontSize: "16px", fontWeight: "500" }}>{currentClient?.phone || "—"}</div>
+                        </div>
+                        <div>
+                            <div style={{ fontSize: "14px", color: "#666", marginBottom: "4px" }}>Роль</div>
+                            <div style={{ fontSize: "16px", fontWeight: "500" }}>{currentClient?.role || "—"}</div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section className="table-block">
+                <div className="table-block__header">
+                    <div>
                         <h2 className="table-block__title">Мои заявки</h2>
                         <p className="table-block__subtitle">
                             Последние заявки по всем вакансиям
@@ -141,7 +181,7 @@ export default function ClientDashboardPage() {
                         <button className="btn btn--ghost">Экспорт</button>
                         <button
                             className="btn btn--primary"
-                            onClick={() => navigate("/request")}
+                            onClick={() => navigate("/client/requests/new")}
                         >
                             Новая заявка
                         </button>

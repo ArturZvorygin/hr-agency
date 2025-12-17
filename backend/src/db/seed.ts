@@ -196,7 +196,7 @@ async function seed() {
                 "Запуск и развитие отдела продаж, постановка планов, управление командой из 10–15 менеджеров.",
             keyRequirements:
                 "Опыт руководства продажами от 3 лет, знание B2B и B2C, умение работать с аналитикой и воронкой.",
-            status: "new",
+            status: "NEW",
         },
         {
             companyId,
@@ -212,7 +212,7 @@ async function seed() {
                 "Разработка и поддержка фронтенда внутренней HR-платформы, работа с дизайн-системой, интеграции с API.",
             keyRequirements:
                 "Опыт с React, TypeScript, Git, понимание UX, опыт работы в продуктовой команде.",
-            status: "in_progress",
+            status: "IN_PROGRESS",
         },
         {
             companyId,
@@ -228,7 +228,7 @@ async function seed() {
                 "Подбор, адаптация сотрудников, участие в HR-проектах, сопровождение сотрудников по HR-вопросам.",
             keyRequirements:
                 "Опыт в HR от 2 лет, уверенные навыки интервью, знание базового трудового законодательства РФ.",
-            status: "wait_client",
+            status: "SOURCING",
         },
         {
             companyId,
@@ -244,7 +244,21 @@ async function seed() {
                 "Операционное управление компанией, развитие процессов, построение KPI, взаимодействие с собственниками.",
             keyRequirements:
                 "Опыт на позиции операционного директора или генерального директора, стратегическое мышление, управленческий опыт.",
-            status: "done",
+            status: "CLOSED",
+        },
+        {
+            companyId,
+            createdBy: clientId,
+            assignedManager: null,
+            positionTitle: "Менеджер по продажам",
+            staffCategoryId: salesCategory ? salesCategory.id : null,
+            experienceYears: "1.0",
+            salaryFrom: "60000",
+            salaryTo: "100000",
+            currency: "RUB",
+            description: "Активные продажи, работа с клиентской базой.",
+            keyRequirements: "Опыт продаж от 1 года, коммуникабельность.",
+            status: "DRAFT",
         },
     ]);
 

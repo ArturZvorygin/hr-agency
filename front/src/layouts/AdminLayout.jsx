@@ -68,6 +68,14 @@ export default function AdminLayout() {
                     >
                         Услуги
                     </NavLink>
+                    <NavLink
+                        to="/admin/categories"
+                        className={({ isActive }) =>
+                            "sidebar__item" + (isActive ? " sidebar__item--active" : "")
+                        }
+                    >
+                        Категории персонала
+                    </NavLink>
 
                     <div className="sidebar__section-title">Система</div>
                     <button

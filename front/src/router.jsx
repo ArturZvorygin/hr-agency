@@ -14,6 +14,7 @@ import AdminLoginPage from "./pages/auth/AdminLoginPage.jsx";
 
 import ClientDashboardPage from "./pages/client/ClientDashboardPage.jsx";
 import ClientRequestsPage from "./pages/client/ClientRequestsPage.jsx";
+import ClientNewRequestPage from "./pages/client/ClientNewRequestPage.jsx";
 import ClientRequestDetailsPage from "./pages/client/ClientRequestDetailsPage.jsx";
 import ClientProfilePage from "./pages/client/ClientProfilePage.jsx";
 
@@ -22,6 +23,7 @@ import AdminRequestsPage from "./pages/admin/AdminRequestsPage.jsx";
 import AdminRequestDetailsPage from "./pages/admin/AdminRequestDetailsPage.jsx";
 import AdminClientsPage from "./pages/admin/AdminClientsPage.jsx";
 import AdminServicesPage from "./pages/admin/AdminServicesPage.jsx";
+import AdminCategoriesPage from "./pages/admin/AdminCategoriesPage.jsx";
 
 export default function AppRouter() {
     return (
@@ -43,6 +45,7 @@ export default function AppRouter() {
             <Route element={<ClientLayout />}>
                 <Route path="/client/dashboard" element={<ClientDashboardPage />} />
                 <Route path="/client/requests" element={<ClientRequestsPage />} />
+                <Route path="/client/requests/new" element={<ClientNewRequestPage />} />
                 <Route
                     path="/client/requests/:id"
                     element={<ClientRequestDetailsPage />}
@@ -60,6 +63,7 @@ export default function AppRouter() {
                 />
                 <Route path="/admin/clients" element={<AdminClientsPage />} />
                 <Route path="/admin/services" element={<AdminServicesPage />} />
+                <Route path="/admin/categories" element={<AdminCategoriesPage />} />
             </Route>
 
             {/* fallback */}

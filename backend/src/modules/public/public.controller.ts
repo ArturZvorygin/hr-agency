@@ -48,36 +48,7 @@ export async function createPublicRequest(req: Request, res: Response) {
                 .json({ message: "Обязательные поля не заполнены" });
         }
 
-        // 1. Компания
-        const existingCompanyRows = await db
-            .select()
-            .from(companies)
-            .where(eq(companies.name, company))
-            .limit(1);
-
-        const existingCompany = existingCompanyRows[0];
-
-        let companyId: string;
-        if (existingCompany) {
-            companyId = existingCompany.id;
-        } else {
-            const insertedCompanies = await db
-                .insert(companies)
-                .values({
-                    name: company,
-                    email,
-                    phone,
-                    website: null,
-                    description: null,
-                    industry: null,
-                    size: null,
-                })
-                .returning();
-
-            companyId = insertedCompanies[0].id;
-        }
-
-        // 2. Клиент
+        // 2. Сначала проверяем пользователя
         const existingUserRows = await db
             .select()
             .from(users)
@@ -87,18 +58,76 @@ export async function createPublicRequest(req: Request, res: Response) {
         const existingUser = existingUserRows[0];
 
         let clientId: string;
+        let companyId: string;
 
         if (existingUser) {
+            // Если пользователь существует, используем его companyId
             clientId = existingUser.id;
 
-            // === ВАЖНЫЙ ФИКС: привязать существующего пользователя к компании ===
-            if (!existingUser.companyId) {
+            if (existingUser.companyId) {
+                // Используем существующую компанию пользователя
+                companyId = existingUser.companyId;
+            } else {
+                // Если у пользователя нет компании, создаем/находим по имени
+                const existingCompanyRows = await db
+                    .select()
+                    .from(companies)
+                    .where(eq(companies.name, company))
+                    .limit(1);
+
+                const existingCompany = existingCompanyRows[0];
+
+                if (existingCompany) {
+                    companyId = existingCompany.id;
+                } else {
+                    const insertedCompanies = await db
+                        .insert(companies)
+                        .values({
+                            name: company,
+                            email,
+                            phone,
+                            website: null,
+                            description: null,
+                            industry: null,
+                            size: null,
+                        })
+                        .returning();
+                    companyId = insertedCompanies[0].id;
+                }
+
+                // Привязываем компанию к пользователю
                 await db
                     .update(users)
                     .set({ companyId })
                     .where(eq(users.id, existingUser.id));
             }
         } else {
+            // Новый пользователь - создаем компанию
+            const existingCompanyRows = await db
+                .select()
+                .from(companies)
+                .where(eq(companies.name, company))
+                .limit(1);
+
+            const existingCompany = existingCompanyRows[0];
+
+            if (existingCompany) {
+                companyId = existingCompany.id;
+            } else {
+                const insertedCompanies = await db
+                    .insert(companies)
+                    .values({
+                        name: company,
+                        email,
+                        phone,
+                        website: null,
+                        description: null,
+                        industry: null,
+                        size: null,
+                    })
+                    .returning();
+                companyId = insertedCompanies[0].id;
+            }
             const passwordHash = await bcrypt.hash("password123", 10);
             const insertedUsers = await db
                 .insert(users)
@@ -119,15 +148,10 @@ export async function createPublicRequest(req: Request, res: Response) {
         // 3. Категория
         let staffCategoryId: number | null = null;
         if (category) {
-            const catRows = await db
-                .select()
-                .from(staffCategories)
-                .where(eq(staffCategories.code, category))
-                .limit(1);
-
-            const cat = catRows[0];
-            if (cat) {
-                staffCategoryId = cat.id;
+            // category приходит как id (строка числа)
+            const categoryId = parseInt(category, 10);
+            if (!isNaN(categoryId)) {
+                staffCategoryId = categoryId;
             }
         }
 
@@ -146,7 +170,7 @@ export async function createPublicRequest(req: Request, res: Response) {
                 currency: "KGS",
                 description: description ?? null,
                 keyRequirements: requirements ?? null,
-                status: "new",
+                status: "NEW",
             } as any)
             .returning();
 

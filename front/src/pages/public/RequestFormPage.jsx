@@ -1,18 +1,10 @@
 // src/pages/public/RequestFormPage.jsx
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Input from "../../components/common/Input.jsx";
 import Select from "../../components/common/Select.jsx";
 import Button from "../../components/common/Button.jsx";
-import { createPublicRequest } from "../../api/client.js";
-
-const CATEGORY_OPTIONS = [
-    { value: "TOP", label: "Топ-менеджмент" },
-    { value: "IT", label: "IT-специалисты" },
-    { value: "ADMIN", label: "Административный персонал" },
-    { value: "PROD", label: "Производственный персонал" },
-    { value: "SALES", label: "Специалисты продаж" },
-];
+import { createPublicRequest, getStaffCategoriesDict } from "../../api/client.js";
 
 export default function RequestFormPage() {
     const [form, setForm] = useState({
@@ -20,14 +12,49 @@ export default function RequestFormPage() {
         phone: "",
         company: "",
         position: "",
-        category: "",
+        categoryId: "",
         experience: "",
         salary: "",
         description: "",
         requirements: "",
     });
+
     const [status, setStatus] = useState(null);
+    const [categories, setCategories] = useState([]);
+    const [loadingCategories, setLoadingCategories] = useState(true);
     const navigate = useNavigate();
+
+    useEffect(() => {
+        let cancelled = false;
+
+        async function loadCategories() {
+            try {
+                setLoadingCategories(true);
+                const data = await getStaffCategoriesDict();
+
+                // бэк должен вернуть { items: [{id, name}, ...] }
+                const list = Array.isArray(data?.items) ? data.items : [];
+
+                if (!cancelled) {
+                    setCategories(
+                        list.map((cat) => ({
+                            value: String(cat.id),
+                            label: cat.name,
+                        }))
+                    );
+                }
+            } catch (e) {
+                console.error("Ошибка загрузки категорий:", e);
+            } finally {
+                if (!cancelled) setLoadingCategories(false);
+            }
+        }
+
+        loadCategories();
+        return () => {
+            cancelled = true;
+        };
+    }, []);
 
     function handleChange(e) {
         const { name, value } = e.target;
@@ -37,15 +64,22 @@ export default function RequestFormPage() {
     async function handleSubmit(e) {
         e.preventDefault();
         setStatus("loading");
+
         try {
-            await createPublicRequest(form);
+            const payload = {
+                ...form,
+                categoryId: form.categoryId ? Number(form.categoryId) : null, // <- в БД обычно число
+            };
+
+            await createPublicRequest(payload);
+
             setStatus("success");
             setForm({
                 email: "",
                 phone: "",
                 company: "",
                 position: "",
-                category: "",
+                categoryId: "",
                 experience: "",
                 salary: "",
                 description: "",
@@ -72,10 +106,11 @@ export default function RequestFormPage() {
 
                 <h1>Заявка на подбор персонала</h1>
                 <p className="auth-card__subtitle">
-                    Оставьте заявку — мы свяжемся с вами, уточним детали вакансии
-                    и предложим формат сотрудничества.
+                    Оставьте заявку — мы свяжемся с вами, уточним детали вакансии и
+                    предложим формат сотрудничества.
                     <br />
-                    Регистрация не требуется: по этой заявке мы создадим карточку компании и назначим менеджера.
+                    Регистрация не требуется: по этой заявке мы создадим карточку компании
+                    и назначим менеджера.
                 </p>
 
                 <form className="form-grid" onSubmit={handleSubmit}>
@@ -108,13 +143,19 @@ export default function RequestFormPage() {
                         onChange={handleChange}
                         required
                     />
+
                     <Select
                         label="Категория персонала"
-                        name="category"
-                        value={form.category}
+                        name="categoryId"                 // ✅ важно
+                        value={form.categoryId}           // ✅ важно
                         onChange={handleChange}
-                        options={CATEGORY_OPTIONS}
+                        options={[
+                            { value: "", label: loadingCategories ? "Загрузка..." : "Выберите категорию" },
+                            ...categories,
+                        ]}
+                        disabled={loadingCategories}
                     />
+
                     <Input
                         label="Требуемый опыт работы"
                         name="experience"
@@ -154,17 +195,20 @@ export default function RequestFormPage() {
                         <Button type="submit">
                             {status === "loading" ? "Отправляем..." : "Отправить заявку"}
                         </Button>
+
                         {status === "success" && (
                             <span className="form-status form-status--success">
-                                Заявка отправлена. Мы свяжемся с вами в ближайшее время.
-                                Ваш временный пароль password123, Вы сможете сменить его в личном кабинете.
-                                Для входа пропишите свою почту и пароль <strong>password123</strong>.
-                            </span>
+                Заявка отправлена. Мы свяжемся с вами в ближайшее время. Ваш
+                временный пароль password123, Вы сможете сменить его в личном
+                кабинете. Для входа пропишите свою почту и пароль{" "}
+                                <strong>password123</strong>.
+              </span>
                         )}
+
                         {status === "error" && (
                             <span className="form-status form-status--error">
-                                Ошибка отправки. Попробуйте позже.
-                            </span>
+                Ошибка отправки. Попробуйте позже.
+              </span>
                         )}
                     </div>
                 </form>

@@ -14,6 +14,9 @@ import adminStatsRouter from "./modules/adminStats/adminStats.routes";
 
 import adminServiceRouter from "./modules/adminServices/adminService.routes";
 import {publicRouter} from "./modules/public/public.routes";
+import requestCommentRouter from "./modules/requestComments/requestComment.routes";
+import adminCategoryRouter from "./modules/adminCategories/adminCategory.routes";
+import adminClientRouter from "./modules/adminClients/adminClient.routes";
 
 const app = express();
 app.use(cors());
@@ -34,6 +37,9 @@ app.use("/api/dict", dictRouter);
 app.use("/api/admin/requests", adminRequestRouter);
 app.use("/api/admin/services", adminServiceRouter);
 app.use("/api/admin/stats", adminStatsRouter);
+app.use("/api/admin/comments", requestCommentRouter);
+app.use("/api/admin/categories", adminCategoryRouter);
+app.use("/api/admin/clients", adminClientRouter);
 app.use("/api/public", publicRouter);
 // Проверка БД
 app.get("/health/db", async (req, res) => {

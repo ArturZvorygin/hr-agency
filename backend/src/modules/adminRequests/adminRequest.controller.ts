@@ -5,7 +5,8 @@ import { adminRequestService } from "./adminRequest.service";
 class AdminRequestController {
     async list(req: Request, res: Response) {
         try {
-            const list = await adminRequestService.listAll();
+            const { status } = req.query;
+            const list = await adminRequestService.listAll(status as string);
             return res.status(200).json({ requests: list });
         } catch (err) {
             console.error("Admin list requests error:", err);
@@ -56,6 +57,27 @@ class AdminRequestController {
             return res.status(200).json({ requests: list });
         } catch (err) {
             console.error("Admin list assigned error:", err);
+            return res.status(500).json({ message: "Internal server error" });
+        }
+    }
+
+    // Назначить менеджера
+    async assignManager(req: Request, res: Response) {
+        try {
+            const { id } = req.params;
+            const { managerId } = req.body;
+
+            if (!managerId) {
+                return res.status(400).json({ message: "Поле managerId обязательно" });
+            }
+
+            const updated = await adminRequestService.assignManager(id, managerId);
+            return res.status(200).json({ request: updated });
+        } catch (err: any) {
+            if (err.message === "REQUEST_NOT_FOUND") {
+                return res.status(404).json({ message: "Заявка не найдена" });
+            }
+            console.error("Admin assign manager error:", err);
             return res.status(500).json({ message: "Internal server error" });
         }
     }

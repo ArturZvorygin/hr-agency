@@ -5,14 +5,19 @@ import StatusBadge from "../../components/common/StatusBadge.jsx";
 import {
     adminGetRequestById,
     adminChangeRequestStatus,
+    adminGetCommentsByRequest,
+    adminCreateComment,
+    adminAssignManager,
 } from "../../api/client.js";
 
 const STATUS_OPTIONS = [
-    { value: "new", label: "Новая" },
-    { value: "in_progress", label: "В работе" },
-    { value: "wait_client", label: "Ожидает клиента" },
-    { value: "done", label: "Закрыта" },
-    { value: "canceled", label: "Отменена" },
+    { value: "DRAFT", label: "Черновик" },
+    { value: "NEW", label: "Новая" },
+    { value: "IN_PROGRESS", label: "В работе" },
+    { value: "SOURCING", label: "Подбор кандидатов" },
+    { value: "INTERVIEWS", label: "Собеседования" },
+    { value: "CLOSED", label: "Закрыта" },
+    { value: "CANCELLED", label: "Отменена" },
 ];
 
 export default function AdminRequestDetailsPage() {
@@ -25,6 +30,11 @@ export default function AdminRequestDetailsPage() {
 
     const [statusValue, setStatusValue] = useState("");
     const [savingStatus, setSavingStatus] = useState(false);
+
+    const [comments, setComments] = useState([]);
+    const [loadingComments, setLoadingComments] = useState(false);
+    const [commentText, setCommentText] = useState("");
+    const [savingComment, setSavingComment] = useState(false);
 
     useEffect(() => {
         let cancelled = false;
@@ -42,8 +52,12 @@ export default function AdminRequestDetailsPage() {
 
                 if (!cancelled) {
                     setItem(reqData || null);
-                    const st = reqData?.status ? String(reqData.status).toLowerCase() : "";
-                    setStatusValue(st);
+                    setStatusValue(reqData?.status || "");
+
+                    // Загружаем комментарии
+                    if (reqData?.id) {
+                        loadComments(reqData.id);
+                    }
                 }
             } catch (e) {
                 console.error(e);
@@ -63,6 +77,18 @@ export default function AdminRequestDetailsPage() {
             cancelled = true;
         };
     }, [id]);
+
+    async function loadComments(requestId) {
+        try {
+            setLoadingComments(true);
+            const data = await adminGetCommentsByRequest(requestId);
+            setComments(data?.comments || []);
+        } catch (e) {
+            console.error("Ошибка загрузки комментариев:", e);
+        } finally {
+            setLoadingComments(false);
+        }
+    }
 
     async function handleStatusSave(nextStatus) {
         if (!item?.id) return;
@@ -93,10 +119,27 @@ export default function AdminRequestDetailsPage() {
     }
 }
 
-async function handleMarkCanceled() {
-    setStatusValue("canceled");
-    await handleStatusSave("canceled");
-}
+    async function handleMarkCanceled() {
+        setStatusValue("CANCELLED");
+        await handleStatusSave("CANCELLED");
+    }
+
+    async function handleAddComment(e) {
+        e.preventDefault();
+        if (!commentText.trim() || !item?.id) return;
+
+        try {
+            setSavingComment(true);
+            await adminCreateComment(item.id, commentText.trim());
+            setCommentText("");
+            await loadComments(item.id);
+        } catch (e) {
+            console.error("Ошибка создания комментария:", e);
+            setError("Не удалось добавить комментарий");
+        } finally {
+            setSavingComment(false);
+        }
+    }
 
 const displayDateTime = (val) =>
     val ? new Date(val).toLocaleString("ru-RU") : "—";
@@ -252,13 +295,57 @@ return (
                     </div>
                 </div>
 
-                {/* Дополнительный блок — можно потом расширить под историю статусов и комментарии */}
+                {/* Комментарии */}
                 <div style={{ marginTop: 32 }}>
-                    <h3>Работа с заявкой</h3>
+                    <h3>Внутренние комментарии</h3>
                     <p className="page-subtitle">
-                        Здесь позже можно добавить историю изменений,
-                        комментарии рекрутеров и файлы кандидатов.
+                        Комментарии видны только менеджерам и администраторам
                     </p>
+
+                    <form onSubmit={handleAddComment} style={{ marginTop: 16 }}>
+                        <textarea
+                            className="field__textarea"
+                            rows={3}
+                            placeholder="Добавить комментарий..."
+                            value={commentText}
+                            onChange={(e) => setCommentText(e.target.value)}
+                            disabled={savingComment}
+                        />
+                        <button
+                            type="submit"
+                            className="btn btn--primary"
+                            disabled={savingComment || !commentText.trim()}
+                            style={{ marginTop: 8 }}
+                        >
+                            {savingComment ? "Сохраняем..." : "Добавить комментарий"}
+                        </button>
+                    </form>
+
+                    <div style={{ marginTop: 24 }}>
+                        {loadingComments && <p>Загрузка комментариев...</p>}
+                        {!loadingComments && comments.length === 0 && (
+                            <p style={{ color: "#666" }}>Комментариев пока нет</p>
+                        )}
+                        {!loadingComments && comments.length > 0 && (
+                            <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+                                {comments.map((comment) => (
+                                    <div
+                                        key={comment.id}
+                                        style={{
+                                            padding: "12px",
+                                            background: "#f5f5f5",
+                                            borderRadius: "8px",
+                                        }}
+                                    >
+                                        <div style={{ fontSize: "14px", color: "#666", marginBottom: "4px" }}>
+                                            {displayDateTime(comment.createdAt)}
+                                        </div>
+                                        <div>{comment.text}</div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
                 </div>
             </>
         )}

@@ -13,6 +13,7 @@ export type CreateRequestDTO = {
     currency?: string;
     description?: string;
     keyRequirements?: string;
+    isDraft?: boolean;
 };
 
 class RequestService {
@@ -45,7 +46,7 @@ class RequestService {
                 currency: dto.currency || "KGS",
                 description: dto.description,
                 keyRequirements: dto.keyRequirements,
-                status: "new",
+                status: dto.isDraft ? "DRAFT" : "NEW",
             } as any)
             .returning();
 
@@ -55,15 +56,22 @@ class RequestService {
     // "Мои заявки":
     // - client  → только свои (createdBy = user.id)
     // - manager/admin → все заявки компании
-    async listMyRequests(userId: string) {
+    // Опционально фильтр по статусу
+    async listMyRequests(userId: string, status?: string) {
         const user = await this.getUserWithCompany(userId);
 
         const companyFilter = eq(requests.companyId, user.companyId!);
 
-        const whereClause =
+        let whereClause =
             user.role === "client"
                 ? and(companyFilter, eq(requests.createdBy, user.id))
                 : companyFilter; // manager/admin видят всё по компании
+
+        if (status && whereClause) {
+            whereClause = and(whereClause, eq(requests.status, status));
+        } else if (status) {
+            whereClause = eq(requests.status, status);
+        }
 
         const list = await db
             .select()

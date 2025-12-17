@@ -39,7 +39,7 @@ export const requests = pgTable("requests", {
     description: text("description"),
     keyRequirements: text("key_requirements"),
 
-    status: varchar("status", { length: 30 }).notNull().default("new"),
+    status: varchar("status", { length: 30 }).notNull().default("NEW"),
 
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow()

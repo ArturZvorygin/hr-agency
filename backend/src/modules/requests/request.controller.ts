@@ -11,7 +11,7 @@ class RequestController {
                 return res.status(401).json({ message: "Требуется авторизация" });
             }
 
-            const { positionTitle, staffCategoryId, experienceYears, salaryFrom, salaryTo, currency, description, keyRequirements } = req.body;
+            const { positionTitle, staffCategoryId, experienceYears, salaryFrom, salaryTo, currency, description, keyRequirements, isDraft } = req.body;
 
             if (!positionTitle) {
                 return res.status(400).json({ message: "Поле positionTitle обязательно" });
@@ -25,7 +25,8 @@ class RequestController {
                 salaryTo,
                 currency,
                 description,
-                keyRequirements
+                keyRequirements,
+                isDraft
             });
 
             return res.status(201).json({ request: created });
@@ -49,7 +50,8 @@ class RequestController {
                 return res.status(401).json({ message: "Требуется авторизация" });
             }
 
-            const list = await requestService.listMyRequests(current.userId);
+            const { status } = req.query;
+            const list = await requestService.listMyRequests(current.userId, status as string);
 
             return res.status(200).json({ requests: list });
         } catch (err: any) {

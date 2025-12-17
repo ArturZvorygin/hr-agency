@@ -7,7 +7,8 @@ export default function ClientRequestsPage() {
     const [items, setItems] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
-    console.log(items, loading, error, "items, loading, error")
+    const [filterStatus, setFilterStatus] = useState("");
+
     useEffect(() => {
         let cancelled = false;
 
@@ -16,8 +17,7 @@ export default function ClientRequestsPage() {
                 setLoading(true);
                 setError(null);
 
-                const data = await getClientRequests();
-                // бэк возвращает { requests: [...] }
+                const data = await getClientRequests(filterStatus || undefined);
                 const list = Array.isArray(data?.requests) ? data.requests : data;
 
                 if (!cancelled) {
@@ -40,14 +40,37 @@ export default function ClientRequestsPage() {
         return () => {
             cancelled = true;
         };
-    }, []);
+    }, [filterStatus]);
 
     return (
         <div className="page-card">
-            <h1>Мои заявки</h1>
-            <p className="page-subtitle">
-                Здесь отображаются заявки на подбор персонала по вашей компании.
-            </p>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
+                <div>
+                    <h1>Мои заявки</h1>
+                    <p className="page-subtitle">
+                        Здесь отображаются заявки на подбор персонала по вашей компании.
+                    </p>
+                </div>
+                <Link to="/client/requests/new" className="btn btn-primary">
+                    Создать заявку
+                </Link>
+            </div>
+
+            <div style={{ marginBottom: "1rem" }}>
+                <label>
+                    Фильтр по статусу:{" "}
+                    <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)}>
+                        <option value="">Все</option>
+                        <option value="DRAFT">Черновик</option>
+                        <option value="NEW">Новая</option>
+                        <option value="IN_PROGRESS">В работе</option>
+                        <option value="SOURCING">Подбор кандидатов</option>
+                        <option value="INTERVIEWS">Собеседования</option>
+                        <option value="CLOSED">Закрыта</option>
+                        <option value="CANCELLED">Отменена</option>
+                    </select>
+                </label>
+            </div>
 
             {loading && <p>Загружаем заявки…</p>}
 

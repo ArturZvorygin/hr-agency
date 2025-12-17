@@ -8,13 +8,18 @@ type ChangeStatusDTO = {
 };
 
 class AdminRequestService {
-    // Все заявки, упорядоченные по дате создания (новые сверху)
-    async listAll() {
-        const list = await db
-            .select()
-            .from(requests)
-            .orderBy(desc(requests.createdAt));
+    // Все заявки, упорядоченные по дате создания (новые сверху), с фильтром по статусу
+    async listAll(status?: string) {
+        const query = db.select().from(requests);
 
+        if (status) {
+            const list = await query
+                .where(eq(requests.status, status))
+                .orderBy(desc(requests.createdAt));
+            return list;
+        }
+
+        const list = await query.orderBy(desc(requests.createdAt));
         return list;
     }
 
@@ -61,6 +66,24 @@ class AdminRequestService {
             .orderBy(desc(requests.createdAt));
 
         return list;
+    }
+
+    // Назначить менеджера на заявку
+    async assignManager(requestId: string, managerId: string) {
+        const [updated] = await db
+            .update(requests)
+            .set({
+                assignedManager: managerId,
+                updatedAt: new Date()
+            } as any)
+            .where(eq(requests.id, requestId))
+            .returning();
+
+        if (!updated) {
+            throw new Error("REQUEST_NOT_FOUND");
+        }
+
+        return updated;
     }
 }
 

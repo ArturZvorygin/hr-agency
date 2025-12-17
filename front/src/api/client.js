@@ -301,8 +301,9 @@ export async function createClientRequest(payload) {
 }
 
 // GET /api/requests/my
-export async function getClientRequests() {
-    return request("/requests/my", {
+export async function getClientRequests(status) {
+    const url = status ? `/requests/my?status=${status}` : "/requests/my";
+    return request(url, {
         method: "GET",
         auth: true,
     });
@@ -339,8 +340,9 @@ export async function getServicesDict() {
    ========================== */
 
 // GET /api/admin/requests
-export async function adminGetRequests() {
-    return request("/admin/requests", {
+export async function adminGetRequests(status) {
+    const url = status ? `/admin/requests?status=${status}` : "/admin/requests";
+    return request(url, {
         method: "GET",
         auth: true,
         admin: true,
@@ -511,5 +513,106 @@ export async function changeClientPassword(currentPassword, newPassword) {
         method: "POST",
         auth: true,
         body: { currentPassword, newPassword },
+    });
+}
+
+/* ==========================
+   ADMIN: назначение менеджера
+   ========================== */
+
+// PATCH /api/admin/requests/:id/assign
+export async function adminAssignManager(requestId, managerId) {
+    return request(`/admin/requests/${requestId}/assign`, {
+        method: "PATCH",
+        auth: true,
+        admin: true,
+        body: { managerId },
+    });
+}
+
+/* ==========================
+   ADMIN: комментарии к заявкам
+   ========================== */
+
+// POST /api/admin/comments
+export async function adminCreateComment(requestId, text) {
+    return request("/admin/comments", {
+        method: "POST",
+        auth: true,
+        admin: true,
+        body: { requestId, text },
+    });
+}
+
+// GET /api/admin/comments/request/:requestId
+export async function adminGetCommentsByRequest(requestId) {
+    return request(`/admin/comments/request/${requestId}`, {
+        method: "GET",
+        auth: true,
+        admin: true,
+    });
+}
+
+/* ==========================
+   ADMIN: категории персонала (CRUD)
+   ========================== */
+
+// GET /api/admin/categories
+export async function adminGetCategories() {
+    return request("/admin/categories", {
+        method: "GET",
+        auth: true,
+        admin: true,
+    });
+}
+
+// POST /api/admin/categories
+export async function adminCreateCategory(payload) {
+    return request("/admin/categories", {
+        method: "POST",
+        auth: true,
+        admin: true,
+        body: payload,
+    });
+}
+
+// PUT /api/admin/categories/:id
+export async function adminUpdateCategory(id, payload) {
+    return request(`/admin/categories/${id}`, {
+        method: "PUT",
+        auth: true,
+        admin: true,
+        body: payload,
+    });
+}
+
+// DELETE /api/admin/categories/:id
+export async function adminDeleteCategory(id) {
+    return request(`/admin/categories/${id}`, {
+        method: "DELETE",
+        auth: true,
+        admin: true,
+    });
+}
+
+/* ==========================
+   ADMIN: клиенты
+   ========================== */
+
+// GET /api/admin/clients
+export async function adminGetClients() {
+    return request("/admin/clients", {
+        method: "GET",
+        auth: true,
+        admin: true,
+    });
+}
+
+// GET /api/admin/clients/:id
+export async function adminGetClientById(id) {
+    return request(`/admin/clients/${id}`, {
+        method: "GET",
+        auth: true,
+        admin: true,
     });
 }

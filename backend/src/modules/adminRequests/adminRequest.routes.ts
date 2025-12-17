@@ -24,6 +24,11 @@ router.patch("/:id/status", ...onlyAdminOrManager, (req, res) =>
     adminRequestController.changeStatus(req, res)
 );
 
+// Назначить менеджера
+router.patch("/:id/assign", ...onlyAdminOrManager, (req, res) =>
+    adminRequestController.assignManager(req, res)
+);
+
 // Опционально: заявки, назначенные текущему менеджеру
 router.get("/me/assigned", ...onlyAdminOrManager, (req, res) =>
     adminRequestController.listMyAssigned(req, res)

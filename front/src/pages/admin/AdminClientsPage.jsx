@@ -1,6 +1,6 @@
 // src/pages/admin/AdminClientsPage.jsx
 import { useEffect, useState } from "react";
-import { adminGetRequests } from "../../api/client.js";
+import { adminGetClients } from "../../api/client.js";
 
 export default function AdminClientsPage() {
     const [clients, setClients] = useState([]);
@@ -15,51 +15,11 @@ export default function AdminClientsPage() {
                 setLoading(true);
                 setError(null);
 
-                const data = await adminGetRequests();
-                const list = Array.isArray(data?.requests) ? data.requests : data;
-
-                const map = new Map();
-
-                (list || []).forEach((r) => {
-                    const key = r.companyId || r.companyName || "unknown";
-                    const name = r.companyName || "Без названия";
-                    const status = r.status ? String(r.status).toLowerCase() : "";
-                    const createdAt = r.createdAt ? new Date(r.createdAt) : null;
-
-                    if (!map.has(key)) {
-                        map.set(key, {
-                            key,
-                            name,
-                            totalRequests: 0,
-                            activeRequests: 0,
-                            lastRequestAt: null,
-                        });
-                    }
-
-                    const entry = map.get(key);
-                    entry.totalRequests += 1;
-
-                    if (
-                        status === "new" ||
-                        status === "in_progress" ||
-                        status === "wait_client"
-                    ) {
-                        entry.activeRequests += 1;
-                    }
-
-                    if (createdAt) {
-                        if (!entry.lastRequestAt || createdAt > entry.lastRequestAt) {
-                            entry.lastRequestAt = createdAt;
-                        }
-                    }
-                });
-
-                const result = Array.from(map.values()).sort((a, b) =>
-                    (b.lastRequestAt?.getTime() || 0) - (a.lastRequestAt?.getTime() || 0)
-                );
+                const data = await adminGetClients();
+                const list = Array.isArray(data?.clients) ? data.clients : data;
 
                 if (!cancelled) {
-                    setClients(result);
+                    setClients(list || []);
                 }
             } catch (e) {
                 console.error(e);
@@ -84,7 +44,7 @@ export default function AdminClientsPage() {
         <div className="page-card">
             <h1>Клиенты</h1>
             <p className="page-subtitle">
-                Компании, по которым есть заявки в системе.
+                Список клиентов системы
             </p>
 
             {loading && <p>Загружаем клиентов…</p>}
@@ -96,28 +56,30 @@ export default function AdminClientsPage() {
             )}
 
             {!loading && !error && clients.length === 0 && (
-                <p>Пока нет ни одного клиента с заявками.</p>
+                <p>Пока нет ни одного клиента.</p>
             )}
 
             {!loading && !error && clients.length > 0 && (
                 <table className="table">
                     <thead>
                     <tr>
+                        <th>Email</th>
+                        <th>Имя</th>
+                        <th>Телефон</th>
                         <th>Компания</th>
-                        <th>Всего заявок</th>
-                        <th>Активные</th>
-                        <th>Последняя заявка</th>
+                        <th>Дата регистрации</th>
                     </tr>
                     </thead>
                     <tbody>
                     {clients.map((c) => (
-                        <tr key={c.key}>
-                            <td>{c.name}</td>
-                            <td>{c.totalRequests}</td>
-                            <td>{c.activeRequests}</td>
+                        <tr key={c.id}>
+                            <td>{c.email}</td>
+                            <td>{c.firstName && c.lastName ? `${c.firstName} ${c.lastName}` : "—"}</td>
+                            <td>{c.phone || "—"}</td>
+                            <td>{c.companyName || "—"}</td>
                             <td>
-                                {c.lastRequestAt
-                                    ? c.lastRequestAt.toLocaleDateString("ru-RU")
+                                {c.createdAt
+                                    ? new Date(c.createdAt).toLocaleDateString("ru-RU")
                                     : "—"}
                             </td>
                         </tr>

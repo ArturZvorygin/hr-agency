@@ -8,11 +8,13 @@ import {
 } from "../../api/client.js";
 
 const STATUS_OPTIONS = [
-    { value: "new", label: "Новая" },
-    { value: "in_progress", label: "В работе" },
-    { value: "wait_client", label: "Ожидает клиента" },
-    { value: "done", label: "Закрыта" },
-    { value: "canceled", label: "Отменена" },
+    { value: "DRAFT", label: "Черновик" },
+    { value: "NEW", label: "Новая" },
+    { value: "IN_PROGRESS", label: "В работе" },
+    { value: "SOURCING", label: "Подбор кандидатов" },
+    { value: "INTERVIEWS", label: "Собеседования" },
+    { value: "CLOSED", label: "Закрыта" },
+    { value: "CANCELLED", label: "Отменена" },
 ];
 
 export default function AdminRequestsPage() {
@@ -20,6 +22,7 @@ export default function AdminRequestsPage() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [updatingId, setUpdatingId] = useState(null);
+    const [filterStatus, setFilterStatus] = useState("");
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -30,8 +33,7 @@ export default function AdminRequestsPage() {
                 setLoading(true);
                 setError(null);
 
-                const data = await adminGetRequests();
-                // бэк может вернуть { requests: [...] } или сразу массив
+                const data = await adminGetRequests(filterStatus || undefined);
                 const list = Array.isArray(data?.requests) ? data.requests : data;
 
                 if (!cancelled) {
@@ -54,7 +56,7 @@ export default function AdminRequestsPage() {
         return () => {
             cancelled = true;
         };
-    }, []);
+    }, [filterStatus]);
 
     async function handleStatusChange(id, nextStatus) {
         try {
@@ -82,9 +84,6 @@ export default function AdminRequestsPage() {
         }
     }
 
-    const normalizeLower = (val) =>
-        val ? String(val).toLowerCase() : "";
-
     return (
         <div className="table-block">
             <div className="table-block__header">
@@ -94,6 +93,20 @@ export default function AdminRequestsPage() {
                         Общий список заявок с возможностью смены статуса.
                     </p>
                 </div>
+            </div>
+
+            <div style={{ marginBottom: "1rem" }}>
+                <label>
+                    Фильтр по статусу:{" "}
+                    <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)}>
+                        <option value="">Все</option>
+                        {STATUS_OPTIONS.map((opt) => (
+                            <option key={opt.value} value={opt.value}>
+                                {opt.label}
+                            </option>
+                        ))}
+                    </select>
+                </label>
             </div>
 
             <div className="table-wrapper">
@@ -124,8 +137,6 @@ export default function AdminRequestsPage() {
                         </thead>
                         <tbody>
                         {rows.map((r) => {
-                            const currentStatusLower = normalizeLower(r.status);
-
                             return (
                                 <tr
                                     key={r.id}
@@ -182,7 +193,7 @@ export default function AdminRequestsPage() {
                                     <td>
                                         <select
                                             className="field__input"
-                                            value={currentStatusLower}
+                                            value={r.status}
                                             disabled={updatingId === r.id}
                                             onChange={(e) =>
                                                 handleStatusChange(
