@@ -34,7 +34,7 @@ export const requests = pgTable("requests", {
 
     salaryFrom: numeric("salary_from", { precision: 12, scale: 2 }),
     salaryTo: numeric("salary_to", { precision: 12, scale: 2 }),
-    currency: varchar("currency", { length: 10 }).default("KGS"),
+    currency: varchar("currency", { length: 10 }).default("Руб"),
 
     description: text("description"),
     keyRequirements: text("key_requirements"),

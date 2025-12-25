@@ -84,7 +84,7 @@ export default function ClientRequestDetailsPage() {
                                 {item.salaryFrom || item.salaryTo
                                     ? `${item.salaryFrom || ""}${
                                         item.salaryTo ? "–" + item.salaryTo : ""
-                                    } ${item.currency || "KGS"}`
+                                    } ${item.currency || "РУБ"}`
                                     : "не указана"}
                             </p>
                             <p>

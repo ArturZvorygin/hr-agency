@@ -43,7 +43,7 @@ class RequestService {
                 experienceYears: dto.experienceYears,
                 salaryFrom: dto.salaryFrom,
                 salaryTo: dto.salaryTo,
-                currency: dto.currency || "KGS",
+                currency: dto.currency || "РУБ",
                 description: dto.description,
                 keyRequirements: dto.keyRequirements,
                 status: dto.isDraft ? "DRAFT" : "NEW",

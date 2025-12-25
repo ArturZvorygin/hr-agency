@@ -13,7 +13,7 @@ export default function ClientNewRequestPage() {
         experienceYears: "",
         salaryFrom: "",
         salaryTo: "",
-        currency: "KGS",
+        currency: "РУБ",
         description: "",
         keyRequirements: "",
         isDraft: false,
@@ -61,7 +61,7 @@ export default function ClientNewRequestPage() {
                 experienceYears: form.experienceYears ? parseFloat(form.experienceYears) : undefined,
                 salaryFrom: form.salaryFrom ? parseFloat(form.salaryFrom) : undefined,
                 salaryTo: form.salaryTo ? parseFloat(form.salaryTo) : undefined,
-                currency: form.currency || "KGS",
+                currency: form.currency || "РУБ",
                 description: form.description || undefined,
                 keyRequirements: form.keyRequirements || undefined,
                 isDraft,
@@ -135,7 +135,7 @@ export default function ClientNewRequestPage() {
                         value={form.currency}
                         onChange={handleChange}
                         options={[
-                            { value: "KGS", label: "KGS" },
+                            { value: "РУБ", label: "РУБ" },
                             { value: "USD", label: "USD" },
                             { value: "RUB", label: "RUB" },
                             { value: "EUR", label: "EUR" },

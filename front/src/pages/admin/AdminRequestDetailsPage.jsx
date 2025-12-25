@@ -283,7 +283,7 @@ return (
                                     item.salaryTo
                                         ? "–" + item.salaryTo
                                         : ""
-                                } ${item.currency || "KGS"}`
+                                } ${item.currency || "РУБ"}`
                                 : "не указана"}
                         </p>
 
