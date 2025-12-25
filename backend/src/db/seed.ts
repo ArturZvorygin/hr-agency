@@ -67,8 +67,8 @@ async function seed() {
     const adminEmail = "admin@nashi-ludi.ru";
     const clientEmail = "client@nashi-ludi.ru";
 
-    const adminPasswordPlain = "Admin123!";
-    const clientPasswordPlain = "Client123!";
+    const adminPasswordPlain = "admin123";
+    const clientPasswordPlain = "password";
 
     const adminPasswordHash = await bcrypt.hash(adminPasswordPlain, 10);
     const clientPasswordHash = await bcrypt.hash(clientPasswordPlain, 10);
