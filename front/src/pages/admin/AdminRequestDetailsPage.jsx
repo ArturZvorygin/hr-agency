@@ -8,6 +8,7 @@ import {
     adminGetCommentsByRequest,
     adminCreateComment,
     adminAssignManager,
+    adminDeleteRequest,
 } from "../../api/client.js";
 
 const STATUS_OPTIONS = [
@@ -49,7 +50,7 @@ export default function AdminRequestDetailsPage() {
                 const data = await adminGetRequestById(id);
                 // бэк может вернуть { request: {...} } или сразу объект
                 const reqData = data?.request || data;
-
+                console.log(data, 'reqData')
                 if (!cancelled) {
                     setItem(reqData || null);
                     setStatusValue(reqData?.status || "");
@@ -138,6 +139,21 @@ export default function AdminRequestDetailsPage() {
             setError("Не удалось добавить комментарий");
         } finally {
             setSavingComment(false);
+        }
+    }
+
+    async function handleDelete() {
+        if (!window.confirm("Удалить эту заявку? Это действие необратимо.")) return;
+
+        try {
+            setSavingStatus(true);
+            await adminDeleteRequest(item.id);
+            navigate("/admin/requests");
+        } catch (e) {
+            console.error(e);
+            setError("Не удалось удалить заявку");
+        } finally {
+            setSavingStatus(false);
         }
     }
 
@@ -258,6 +274,16 @@ return (
                                     onClick={handleMarkCanceled}
                                 >
                                     Пометить как отменённую
+                                </button>
+
+                                <button
+                                    type="button"
+                                    className="btn btn--danger"
+                                    disabled={savingStatus}
+                                    onClick={handleDelete}
+                                    style={{ marginLeft: "auto" }}
+                                >
+                                    Удалить заявку
                                 </button>
                             </div>
                         </div>

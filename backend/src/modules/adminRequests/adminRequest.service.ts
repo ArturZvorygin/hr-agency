@@ -99,6 +99,40 @@ class AdminRequestService {
         if (!res[0]) throw new Error("REQUEST_NOT_FOUND");
         return this.getById(requestId);
     }
+
+    async updateRequest(id: string, data: {
+        positionTitle?: string;
+        staffCategoryId?: number;
+        experienceYears?: number;
+        salaryFrom?: number;
+        salaryTo?: number;
+        currency?: string;
+        description?: string;
+        keyRequirements?: string;
+        status?: string;
+    }) {
+        const res = await db
+            .update(requests)
+            .set({
+                ...data,
+                updatedAt: new Date(),
+            } as any)
+            .where(eq(requests.id, id))
+            .returning({ id: requests.id });
+
+        if (!res[0]) throw new Error("REQUEST_NOT_FOUND");
+        return this.getById(id);
+    }
+
+    async deleteRequest(id: string) {
+        const res = await db
+            .delete(requests)
+            .where(eq(requests.id, id))
+            .returning({ id: requests.id });
+
+        if (!res[0]) throw new Error("REQUEST_NOT_FOUND");
+        return res[0];
+    }
 }
 
 export const adminRequestService = new AdminRequestService();

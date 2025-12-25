@@ -1,5 +1,5 @@
 // src/api/client.js
-const API_URL = "/api";
+const API_URL = "http://localhost:8000/api";
 
 /* ==========================
    helpers для admin-auth
@@ -612,6 +612,64 @@ export async function adminGetClients() {
 export async function adminGetClientById(id) {
     return request(`/admin/clients/${id}`, {
         method: "GET",
+        auth: true,
+        admin: true,
+    });
+}
+
+// PUT /api/admin/clients/:id
+export async function adminUpdateClient(id, payload) {
+    return request(`/admin/clients/${id}`, {
+        method: "PUT",
+        auth: true,
+        admin: true,
+        body: payload,
+    });
+}
+
+// PUT /api/admin/clients/:id/company
+export async function adminUpdateClientCompany(id, payload) {
+    return request(`/admin/clients/${id}/company`, {
+        method: "PUT",
+        auth: true,
+        admin: true,
+        body: payload,
+    });
+}
+
+// DELETE /api/admin/clients/:id
+export async function adminDeleteClient(id) {
+    return request(`/admin/clients/${id}`, {
+        method: "DELETE",
+        auth: true,
+        admin: true,
+    });
+}
+
+// POST /api/admin/clients/:id/change-password
+export async function adminChangeClientPassword(id, newPassword) {
+    return request(`/admin/clients/${id}/change-password`, {
+        method: "POST",
+        auth: true,
+        admin: true,
+        body: { newPassword },
+    });
+}
+
+// PUT /api/admin/requests/:id
+export async function adminUpdateRequest(id, payload) {
+    return request(`/admin/requests/${id}`, {
+        method: "PUT",
+        auth: true,
+        admin: true,
+        body: payload,
+    });
+}
+
+// DELETE /api/admin/requests/:id
+export async function adminDeleteRequest(id) {
+    return request(`/admin/requests/${id}`, {
+        method: "DELETE",
         auth: true,
         admin: true,
     });

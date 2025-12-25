@@ -17,11 +17,13 @@ import ClientRequestsPage from "./pages/client/ClientRequestsPage.jsx";
 import ClientNewRequestPage from "./pages/client/ClientNewRequestPage.jsx";
 import ClientRequestDetailsPage from "./pages/client/ClientRequestDetailsPage.jsx";
 import ClientProfilePage from "./pages/client/ClientProfilePage.jsx";
+import ClientChangePasswordPage from "./pages/client/ClientChangePasswordPage.jsx";
 
 import AdminDashboardPage from "./pages/admin/AdminDashboardPage.jsx";
 import AdminRequestsPage from "./pages/admin/AdminRequestsPage.jsx";
 import AdminRequestDetailsPage from "./pages/admin/AdminRequestDetailsPage.jsx";
 import AdminClientsPage from "./pages/admin/AdminClientsPage.jsx";
+import AdminClientDetailsPage from "./pages/admin/AdminClientDetailsPage.jsx";
 import AdminServicesPage from "./pages/admin/AdminServicesPage.jsx";
 import AdminCategoriesPage from "./pages/admin/AdminCategoriesPage.jsx";
 
@@ -51,6 +53,7 @@ export default function AppRouter() {
                     element={<ClientRequestDetailsPage />}
                 />
                 <Route path="/client/profile" element={<ClientProfilePage />} />
+                <Route path="/client/change-password" element={<ClientChangePasswordPage />} />
             </Route>
 
             {/* Админка */}
@@ -62,6 +65,7 @@ export default function AppRouter() {
                     element={<AdminRequestDetailsPage />}
                 />
                 <Route path="/admin/clients" element={<AdminClientsPage />} />
+                <Route path="/admin/clients/:id" element={<AdminClientDetailsPage />} />
                 <Route path="/admin/services" element={<AdminServicesPage />} />
                 <Route path="/admin/categories" element={<AdminCategoriesPage />} />
             </Route>

@@ -1,5 +1,5 @@
 // src/pages/client/ClientNewRequestPage.jsx
-import { useState, useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Input from "../../components/common/Input.jsx";
 import Select from "../../components/common/Select.jsx";
@@ -13,23 +13,30 @@ function toNumberOrUndefined(v) {
     return Number.isFinite(n) ? n : undefined;
 }
 
+function normCurrency(v) {
+    const s = String(v || "").trim().toUpperCase();
+    if (!s) return "РУБ";
+    if (s === "RUB") return "РУБ"; // чтобы не плодить разные варианты
+    return s;
+}
+
 export default function ClientNewRequestPage() {
+    const navigate = useNavigate();
+
     const [form, setForm] = useState({
         positionTitle: "",
-        staffCategoryId: "", // строка для select, но в payload будет number
+        staffCategoryId: "", // строка для select, в payload -> number
         experienceYears: "",
         salaryFrom: "",
         salaryTo: "",
         currency: "РУБ",
         description: "",
         keyRequirements: "",
-        isDraft: false,
     });
 
-    const [status, setStatus] = useState(null);
+    const [status, setStatus] = useState("idle"); // idle | loading | success | error
     const [categories, setCategories] = useState([]);
     const [loadingCategories, setLoadingCategories] = useState(true);
-    const navigate = useNavigate();
 
     useEffect(() => {
         let cancelled = false;
@@ -38,12 +45,10 @@ export default function ClientNewRequestPage() {
             try {
                 setLoadingCategories(true);
                 const data = await getStaffCategoriesDict();
-
-                // твой ответ реально: { items: [...] }
                 const list = Array.isArray(data?.items) ? data.items : [];
 
                 const mapped = list.map((cat) => ({
-                    value: String(cat.id), // select любит строки
+                    value: String(cat.id),
                     label: cat.name,
                 }));
 
@@ -67,64 +72,95 @@ export default function ClientNewRequestPage() {
         [categories]
     );
 
-    // ✅ универсальный обработчик (важно для твоего кастомного Select)
+    // ✅ универсальный обработчик (под твой кастомный Select)
     function handleChange(eOrName, maybeValue) {
-        // вариант: onChange("staffCategoryId", "2")
+        // onChange("staffCategoryId", "2")
         if (typeof eOrName === "string") {
             setForm((prev) => ({ ...prev, [eOrName]: maybeValue }));
             return;
         }
 
-        // вариант: onChange({ name, value })
-        if (eOrName && typeof eOrName === "object" && "name" in eOrName && "value" in eOrName) {
+        // onChange({ name, value })
+        if (
+            eOrName &&
+            typeof eOrName === "object" &&
+            "name" in eOrName &&
+            "value" in eOrName
+        ) {
             setForm((prev) => ({ ...prev, [eOrName.name]: eOrName.value }));
             return;
         }
 
         // обычный event
-        const { name, value, type, checked } = eOrName.target;
-        setForm((prev) => ({ ...prev, [name]: type === "checkbox" ? checked : value }));
+        const { name, value } = eOrName.target;
+        setForm((prev) => ({ ...prev, [name]: value }));
     }
 
-    async function handleSubmit(e, isDraft = false) {
-        e.preventDefault();
+    function validate() {
+        const title = String(form.positionTitle || "").trim();
+        if (!title) return "Укажите должность";
+        return null;
+    }
+
+    async function submit(isDraft) {
+        const err = validate();
+        if (err) {
+            setStatus("error");
+            alert(err);
+            return;
+        }
+
         setStatus("loading");
 
         try {
             const payload = {
-                positionTitle: form.positionTitle.trim(),
-                // ✅ ВАЖНО: отправляем staffCategoryId, не categoryId
-                // ✅ ВАЖНО: конвертируем в number, потому что dict id = number
-                staffCategoryId: form.staffCategoryId ? Number(form.staffCategoryId) : undefined,
+                positionTitle: String(form.positionTitle || "").trim(),
+
+                // отправляем именно staffCategoryId (number)
+                staffCategoryId: form.staffCategoryId
+                    ? Number(form.staffCategoryId)
+                    : undefined,
 
                 experienceYears: toNumberOrUndefined(form.experienceYears),
                 salaryFrom: toNumberOrUndefined(form.salaryFrom),
                 salaryTo: toNumberOrUndefined(form.salaryTo),
 
-                currency: form.currency || "РУБ",
-                description: form.description?.trim() || undefined,
-                keyRequirements: form.keyRequirements?.trim() || undefined,
-                isDraft,
+                currency: normCurrency(form.currency),
+
+                description: String(form.description || "").trim() || undefined,
+                keyRequirements: String(form.keyRequirements || "").trim() || undefined,
+
+                isDraft: Boolean(isDraft),
             };
 
-            console.log("CREATE REQUEST PAYLOAD:", payload); // ✅ проверь тут
+            console.log("CREATE REQUEST PAYLOAD:", payload);
 
             await createClientRequest(payload);
 
             setStatus("success");
             navigate("/client/requests");
-        } catch (err) {
-            console.error(err);
+        } catch (e) {
+            console.error(e);
             setStatus("error");
         }
     }
 
+    const disabled = status === "loading";
+
     return (
         <div className="page-card">
             <h1>Новая заявка</h1>
-            <p className="page-subtitle">Заполните форму для создания заявки на подбор персонала</p>
+            <p className="page-subtitle">
+                Заполните форму для создания заявки на подбор персонала
+            </p>
 
-            <form className="form-grid" onSubmit={(e) => handleSubmit(e, false)}>
+            <form
+                className="form-grid"
+                onSubmit={(e) => {
+                    e.preventDefault();
+                    submit(false);
+                }}
+            >
                 <Input
                     label="Должность *"
                     name="positionTitle"
@@ -139,7 +175,7 @@ export default function ClientNewRequestPage() {
                     value={form.staffCategoryId}
                     onChange={handleChange}
                     options={categoryOptions}
-                    disabled={loadingCategories}
+                    disabled={loadingCategories || disabled}
                 />
 
                 <Input
@@ -149,15 +185,23 @@ export default function ClientNewRequestPage() {
                     name="experienceYears"
                     value={form.experienceYears}
                     onChange={handleChange}
+                    disabled={disabled}
                 />
 
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "1rem" }}>
+                <div
+                    style={{
+                        display: "grid",
+                        gridTemplateColumns: "1fr 1fr 1fr",
+                        gap: "1rem",
+                    }}
+                >
                     <Input
                         label="Зарплата от"
                         type="number"
                         name="salaryFrom"
                         value={form.salaryFrom}
                         onChange={handleChange}
+                        disabled={disabled}
                     />
                     <Input
                         label="Зарплата до"
@@ -165,6 +209,7 @@ export default function ClientNewRequestPage() {
                         name="salaryTo"
                         value={form.salaryTo}
                         onChange={handleChange}
+                        disabled={disabled}
                     />
                     <Select
                         label="Валюта"
@@ -174,9 +219,9 @@ export default function ClientNewRequestPage() {
                         options={[
                             { value: "РУБ", label: "РУБ" },
                             { value: "USD", label: "USD" },
-                            { value: "RUB", label: "RUB" },
                             { value: "EUR", label: "EUR" },
                         ]}
+                        disabled={disabled}
                     />
                 </div>
 
@@ -188,6 +233,7 @@ export default function ClientNewRequestPage() {
                         value={form.description}
                         onChange={handleChange}
                         rows={4}
+                        disabled={disabled}
                     />
                 </label>
 
@@ -199,24 +245,38 @@ export default function ClientNewRequestPage() {
                         value={form.keyRequirements}
                         onChange={handleChange}
                         rows={3}
+                        disabled={disabled}
                     />
                 </label>
 
-                <div className="form-grid__actions" style={{ display: "flex", gap: "1rem", alignItems: "center" }}>
-                    <Button type="submit" disabled={status === "loading"}>
-                        {status === "loading" ? "Создаём..." : "Создать заявку"}
+                <div
+                    className="form-grid__actions"
+                    style={{
+                        display: "flex",
+                        gap: "1rem",
+                        alignItems: "center",
+                        flexWrap: "wrap",
+                    }}
+                >
+                    <Button type="submit" disabled={disabled}>
+                        {disabled ? "Создаём..." : "Создать заявку"}
                     </Button>
 
                     <Button
                         type="button"
                         className="btn btn--ghost"
-                        onClick={(e) => handleSubmit(e, true)}
-                        disabled={status === "loading"}
+                        onClick={() => submit(true)}
+                        disabled={disabled}
                     >
                         Сохранить как черновик
                     </Button>
 
-                    <Button type="button" className="btn btn--ghost" onClick={() => navigate("/client/requests")}>
+                    <Button
+                        type="button"
+                        className="btn btn--ghost"
+                        onClick={() => navigate("/client/requests")}
+                        disabled={disabled}
+                    >
                         Отмена
                     </Button>
 

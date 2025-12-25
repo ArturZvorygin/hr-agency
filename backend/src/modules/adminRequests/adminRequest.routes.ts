@@ -34,4 +34,14 @@ router.get("/me/assigned", ...onlyAdminOrManager, (req, res) =>
     adminRequestController.listMyAssigned(req, res)
 );
 
+// Обновить заявку
+router.put("/:id", ...onlyAdminOrManager, (req, res) =>
+    adminRequestController.update(req, res)
+);
+
+// Удалить заявку
+router.delete("/:id", ...onlyAdminOrManager, (req, res) =>
+    adminRequestController.delete(req, res)
+);
+
 export default router;
