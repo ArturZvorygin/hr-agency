@@ -6,7 +6,7 @@ import { and, eq, desc } from "drizzle-orm";
 
 export type CreateRequestDTO = {
     positionTitle: string;
-    staffCategoryId?: number;
+    staffCategoryId?: string; // ✅ было number
     experienceYears?: number;
     salaryFrom?: number;
     salaryTo?: number;
@@ -33,13 +33,19 @@ class RequestService {
     async createRequest(userId: string, dto: CreateRequestDTO) {
         const user = await this.getUserWithCompany(userId);
 
+        // ✅ нормализация: фронт часто присылает "" из select
+        const staffCategoryId =
+            dto.staffCategoryId && String(dto.staffCategoryId).trim() !== ""
+                ? String(dto.staffCategoryId)
+                : null;
+
         const [created] = await db
             .insert(requests)
             .values({
                 companyId: user.companyId!,
                 createdBy: user.id,
                 positionTitle: dto.positionTitle,
-                staffCategoryId: dto.staffCategoryId,
+                staffCategoryId, // ✅ теперь либо uuid-string, либо null
                 experienceYears: dto.experienceYears,
                 salaryFrom: dto.salaryFrom,
                 salaryTo: dto.salaryTo,
@@ -53,10 +59,6 @@ class RequestService {
         return created;
     }
 
-    // "Мои заявки":
-    // - client  → только свои (createdBy = user.id)
-    // - manager/admin → все заявки компании
-    // Опционально фильтр по статусу
     async listMyRequests(userId: string, status?: string) {
         const user = await this.getUserWithCompany(userId);
 
@@ -65,7 +67,7 @@ class RequestService {
         let whereClause =
             user.role === "client"
                 ? and(companyFilter, eq(requests.createdBy, user.id))
-                : companyFilter; // manager/admin видят всё по компании
+                : companyFilter;
 
         if (status && whereClause) {
             whereClause = and(whereClause, eq(requests.status, status));

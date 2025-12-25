@@ -1,24 +1,30 @@
+// src/components/common/Select.jsx
 export default function Select({
                                    label,
                                    name,
                                    value,
                                    onChange,
-                                   options,
+                                   options = [],
                                    required,
+                                   disabled,
+                                   placeholder = "Выберите...",
                                }) {
     return (
         <label className="field">
             {label && <span className="field__label">{label}</span>}
+
             <select
                 className="field__input"
                 name={name}
-                value={value}
+                value={value ?? ""}
                 onChange={onChange}
                 required={required}
+                disabled={disabled}
             >
-                <option value="">Выберите...</option>
+                <option value="">{placeholder}</option>
+
                 {options.map((opt) => (
-                    <option key={opt.value} value={opt.value}>
+                    <option key={String(opt.value)} value={String(opt.value)}>
                         {opt.label}
                     </option>
                 ))}

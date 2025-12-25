@@ -1,89 +1,103 @@
 // src/modules/adminRequests/adminRequest.service.ts
 import { db } from "../../db/db";
 import { requests } from "../../db/schema/requests";
-import { and, desc, eq } from "drizzle-orm";
+import { desc, eq } from "drizzle-orm";
 
-type ChangeStatusDTO = {
-    status: string;
-};
+import { companies } from "../../db/schema/companies";
+import { users } from "../../db/schema/users";
+
+// ✅ добавили категории персонала
+import { staffCategories } from "../../db/schema/staffCategories";
+
+import { alias } from "drizzle-orm/pg-core";
+
+type ChangeStatusDTO = { status: string };
+
+const uClient = alias(users, "uClient");
+const uManager = alias(users, "uManager");
 
 class AdminRequestService {
-    // Все заявки, упорядоченные по дате создания (новые сверху), с фильтром по статусу
-    async listAll(status?: string) {
-        const query = db.select().from(requests);
+    private baseSelect() {
+        return db
+            .select({
+                // requests
+                id: requests.id,
+                status: requests.status,
+                createdAt: requests.createdAt,
+                updatedAt: requests.updatedAt,
+                companyId: requests.companyId,
+                staffCategoryId: requests.staffCategoryId,
+                createdBy: requests.createdBy,
+                assignedManager: requests.assignedManager,
 
-        if (status) {
-            const list = await query
-                .where(eq(requests.status, status))
-                .orderBy(desc(requests.createdAt));
-            return list;
-        }
+                positionTitle: requests.positionTitle,
+                description: requests.description,
+                keyRequirements: requests.keyRequirements,
+                experienceYears: requests.experienceYears,
+                salaryFrom: requests.salaryFrom,
+                salaryTo: requests.salaryTo,
+                currency: requests.currency,
 
-        const list = await query.orderBy(desc(requests.createdAt));
-        return list;
+                // "реальные" поля для фронта
+                companyName: companies.name,
+
+                // клиент (минимально безопасно)
+                clientEmail: uClient.email,
+                clientName: uClient.email,
+
+                // менеджер (минимально безопасно)
+                managerName: uManager.email,
+
+                // ✅ категория персонала
+                staffCategoryName: staffCategories.name,
+            })
+            .from(requests)
+            .leftJoin(companies, eq(requests.companyId, companies.id))
+            .leftJoin(uClient, eq(requests.createdBy, uClient.id))
+            .leftJoin(uManager, eq(requests.assignedManager, uManager.id))
+            // ✅ join категории (важно LEFT JOIN, потому что staffCategoryId может быть null)
+            .leftJoin(staffCategories, eq(requests.staffCategoryId, staffCategories.id));
     }
 
-    // Одна заявка по id
+    async listAll(status?: string) {
+        const q = this.baseSelect();
+        return status
+            ? await q.where(eq(requests.status, status)).orderBy(desc(requests.createdAt))
+            : await q.orderBy(desc(requests.createdAt));
+    }
+
     async getById(id: string) {
-        const [item] = await db
-            .select()
-            .from(requests)
-            .where(eq(requests.id, id))
-            .limit(1);
-
-        if (!item) {
-            throw new Error("REQUEST_NOT_FOUND");
-        }
-
+        const [item] = await this.baseSelect().where(eq(requests.id, id)).limit(1);
+        if (!item) throw new Error("REQUEST_NOT_FOUND");
         return item;
     }
 
-    // Смена статуса заявки
     async changeStatus(id: string, dto: ChangeStatusDTO) {
-        // На диплом достаточно просто записать строку статуса
-        const [updated] = await db
+        const res = await db
             .update(requests)
-            .set({
-                status: dto.status,
-                updatedAt: new Date()
-            } as any)
+            .set({ status: dto.status, updatedAt: new Date() } as any)
             .where(eq(requests.id, id))
-            .returning();
+            .returning({ id: requests.id });
 
-        if (!updated) {
-            throw new Error("REQUEST_NOT_FOUND");
-        }
-
-        return updated;
+        if (!res[0]) throw new Error("REQUEST_NOT_FOUND");
+        return this.getById(id);
     }
 
-    // Опционально: список заявок, назначенных конкретному менеджеру
     async listAssignedToManager(managerId: string) {
-        const list = await db
-            .select()
-            .from(requests)
+        return this.baseSelect()
             .where(eq(requests.assignedManager, managerId))
             .orderBy(desc(requests.createdAt));
-
-        return list;
     }
 
-    // Назначить менеджера на заявку
     async assignManager(requestId: string, managerId: string) {
-        const [updated] = await db
+        const res = await db
             .update(requests)
-            .set({
-                assignedManager: managerId,
-                updatedAt: new Date()
-            } as any)
+            .set({ assignedManager: managerId, updatedAt: new Date() } as any)
             .where(eq(requests.id, requestId))
-            .returning();
+            .returning({ id: requests.id });
 
-        if (!updated) {
-            throw new Error("REQUEST_NOT_FOUND");
-        }
-
-        return updated;
+        if (!res[0]) throw new Error("REQUEST_NOT_FOUND");
+        return this.getById(requestId);
     }
 }
 

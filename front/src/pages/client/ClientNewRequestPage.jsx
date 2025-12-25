@@ -1,15 +1,22 @@
 // src/pages/client/ClientNewRequestPage.jsx
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import Input from "../../components/common/Input.jsx";
 import Select from "../../components/common/Select.jsx";
 import Button from "../../components/common/Button.jsx";
 import { createClientRequest, getStaffCategoriesDict } from "../../api/client.js";
 
+function toNumberOrUndefined(v) {
+    const s = String(v ?? "").trim();
+    if (!s) return undefined;
+    const n = Number(s);
+    return Number.isFinite(n) ? n : undefined;
+}
+
 export default function ClientNewRequestPage() {
     const [form, setForm] = useState({
         positionTitle: "",
-        staffCategoryId: "",
+        staffCategoryId: "", // строка для select, но в payload будет number
         experienceYears: "",
         salaryFrom: "",
         salaryTo: "",
@@ -18,36 +25,65 @@ export default function ClientNewRequestPage() {
         keyRequirements: "",
         isDraft: false,
     });
+
     const [status, setStatus] = useState(null);
     const [categories, setCategories] = useState([]);
     const [loadingCategories, setLoadingCategories] = useState(true);
     const navigate = useNavigate();
 
     useEffect(() => {
+        let cancelled = false;
+
         async function loadCategories() {
             try {
                 setLoadingCategories(true);
                 const data = await getStaffCategoriesDict();
-                const list = data?.items || [];
-                setCategories(
-                    list.map((cat) => ({
-                        value: String(cat.id),
-                        label: cat.name,
-                    }))
-                );
+
+                // твой ответ реально: { items: [...] }
+                const list = Array.isArray(data?.items) ? data.items : [];
+
+                const mapped = list.map((cat) => ({
+                    value: String(cat.id), // select любит строки
+                    label: cat.name,
+                }));
+
+                if (!cancelled) setCategories(mapped);
             } catch (e) {
                 console.error("Ошибка загрузки категорий:", e);
+                if (!cancelled) setCategories([]);
             } finally {
-                setLoadingCategories(false);
+                if (!cancelled) setLoadingCategories(false);
             }
         }
 
         loadCategories();
+        return () => {
+            cancelled = true;
+        };
     }, []);
 
-    function handleChange(e) {
-        const { name, value } = e.target;
-        setForm((prev) => ({ ...prev, [name]: value }));
+    const categoryOptions = useMemo(
+        () => [{ value: "", label: "Не выбрано" }, ...categories],
+        [categories]
+    );
+
+    // ✅ универсальный обработчик (важно для твоего кастомного Select)
+    function handleChange(eOrName, maybeValue) {
+        // вариант: onChange("staffCategoryId", "2")
+        if (typeof eOrName === "string") {
+            setForm((prev) => ({ ...prev, [eOrName]: maybeValue }));
+            return;
+        }
+
+        // вариант: onChange({ name, value })
+        if (eOrName && typeof eOrName === "object" && "name" in eOrName && "value" in eOrName) {
+            setForm((prev) => ({ ...prev, [eOrName.name]: eOrName.value }));
+            return;
+        }
+
+        // обычный event
+        const { name, value, type, checked } = eOrName.target;
+        setForm((prev) => ({ ...prev, [name]: type === "checkbox" ? checked : value }));
     }
 
     async function handleSubmit(e, isDraft = false) {
@@ -56,24 +92,27 @@ export default function ClientNewRequestPage() {
 
         try {
             const payload = {
-                positionTitle: form.positionTitle,
-                staffCategoryId: form.staffCategoryId ? parseInt(form.staffCategoryId, 10) : undefined,
-                experienceYears: form.experienceYears ? parseFloat(form.experienceYears) : undefined,
-                salaryFrom: form.salaryFrom ? parseFloat(form.salaryFrom) : undefined,
-                salaryTo: form.salaryTo ? parseFloat(form.salaryTo) : undefined,
+                positionTitle: form.positionTitle.trim(),
+                // ✅ ВАЖНО: отправляем staffCategoryId, не categoryId
+                // ✅ ВАЖНО: конвертируем в number, потому что dict id = number
+                staffCategoryId: form.staffCategoryId ? Number(form.staffCategoryId) : undefined,
+
+                experienceYears: toNumberOrUndefined(form.experienceYears),
+                salaryFrom: toNumberOrUndefined(form.salaryFrom),
+                salaryTo: toNumberOrUndefined(form.salaryTo),
+
                 currency: form.currency || "РУБ",
-                description: form.description || undefined,
-                keyRequirements: form.keyRequirements || undefined,
+                description: form.description?.trim() || undefined,
+                keyRequirements: form.keyRequirements?.trim() || undefined,
                 isDraft,
             };
 
-            await createClientRequest(payload);
-            setStatus("success");
+            console.log("CREATE REQUEST PAYLOAD:", payload); // ✅ проверь тут
 
-            // Перенаправляем на список заявок
-            setTimeout(() => {
-                navigate("/client/requests");
-            }, 1500);
+            await createClientRequest(payload);
+
+            setStatus("success");
+            navigate("/client/requests");
         } catch (err) {
             console.error(err);
             setStatus("error");
@@ -83,9 +122,7 @@ export default function ClientNewRequestPage() {
     return (
         <div className="page-card">
             <h1>Новая заявка</h1>
-            <p className="page-subtitle">
-                Заполните форму для создания заявки на подбор персонала
-            </p>
+            <p className="page-subtitle">Заполните форму для создания заявки на подбор персонала</p>
 
             <form className="form-grid" onSubmit={(e) => handleSubmit(e, false)}>
                 <Input
@@ -101,7 +138,7 @@ export default function ClientNewRequestPage() {
                     name="staffCategoryId"
                     value={form.staffCategoryId}
                     onChange={handleChange}
-                    options={categories}
+                    options={categoryOptions}
                     disabled={loadingCategories}
                 />
 
@@ -151,7 +188,6 @@ export default function ClientNewRequestPage() {
                         value={form.description}
                         onChange={handleChange}
                         rows={4}
-                        placeholder="Опишите требования к кандидату, обязанности, условия работы..."
                     />
                 </label>
 
@@ -163,7 +199,6 @@ export default function ClientNewRequestPage() {
                         value={form.keyRequirements}
                         onChange={handleChange}
                         rows={3}
-                        placeholder="Например: знание языков, навыки, образование..."
                     />
                 </label>
 
@@ -181,23 +216,14 @@ export default function ClientNewRequestPage() {
                         Сохранить как черновик
                     </Button>
 
-                    <Button
-                        type="button"
-                        className="btn btn--ghost"
-                        onClick={() => navigate("/client/requests")}
-                    >
+                    <Button type="button" className="btn btn--ghost" onClick={() => navigate("/client/requests")}>
                         Отмена
                     </Button>
 
-                    {status === "success" && (
-                        <span className="form-status form-status--success">
-                            Заявка создана! Перенаправляем...
-                        </span>
-                    )}
                     {status === "error" && (
                         <span className="form-status form-status--error">
-                            Ошибка создания заявки. Проверьте данные и попробуйте снова.
-                        </span>
+              Ошибка создания заявки. Проверьте данные и попробуйте снова.
+            </span>
                     )}
                 </div>
             </form>
