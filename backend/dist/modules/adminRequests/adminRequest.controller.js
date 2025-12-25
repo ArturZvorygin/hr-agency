@@ -77,5 +77,44 @@ class AdminRequestController {
             return res.status(500).json({ message: "Internal server error" });
         }
     }
+    async update(req, res) {
+        try {
+            const { id } = req.params;
+            const { positionTitle, staffCategoryId, experienceYears, salaryFrom, salaryTo, currency, description, keyRequirements, status, } = req.body;
+            const updated = await adminRequest_service_1.adminRequestService.updateRequest(id, {
+                positionTitle,
+                staffCategoryId,
+                experienceYears,
+                salaryFrom,
+                salaryTo,
+                currency,
+                description,
+                keyRequirements,
+                status,
+            });
+            return res.status(200).json({ request: updated });
+        }
+        catch (err) {
+            if (err.message === "REQUEST_NOT_FOUND") {
+                return res.status(404).json({ message: "Заявка не найдена" });
+            }
+            console.error("Admin update request error:", err);
+            return res.status(500).json({ message: "Internal server error" });
+        }
+    }
+    async delete(req, res) {
+        try {
+            const { id } = req.params;
+            await adminRequest_service_1.adminRequestService.deleteRequest(id);
+            return res.status(200).json({ message: "Заявка удалена" });
+        }
+        catch (err) {
+            if (err.message === "REQUEST_NOT_FOUND") {
+                return res.status(404).json({ message: "Заявка не найдена" });
+            }
+            console.error("Admin delete request error:", err);
+            return res.status(500).json({ message: "Internal server error" });
+        }
+    }
 }
 exports.adminRequestController = new AdminRequestController();

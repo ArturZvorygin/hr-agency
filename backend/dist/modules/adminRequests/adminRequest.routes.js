@@ -18,4 +18,8 @@ router.patch("/:id/status", ...onlyAdminOrManager, (req, res) => adminRequest_co
 router.patch("/:id/assign", ...onlyAdminOrManager, (req, res) => adminRequest_controller_1.adminRequestController.assignManager(req, res));
 // Опционально: заявки, назначенные текущему менеджеру
 router.get("/me/assigned", ...onlyAdminOrManager, (req, res) => adminRequest_controller_1.adminRequestController.listMyAssigned(req, res));
+// Обновить заявку
+router.put("/:id", ...onlyAdminOrManager, (req, res) => adminRequest_controller_1.adminRequestController.update(req, res));
+// Удалить заявку
+router.delete("/:id", ...onlyAdminOrManager, (req, res) => adminRequest_controller_1.adminRequestController.delete(req, res));
 exports.default = router;

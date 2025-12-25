@@ -139,7 +139,7 @@ async function createPublicRequest(req, res) {
             experienceYears: toNumericOrNull(experience),
             salaryFrom: toNumericOrNull(salary),
             salaryTo: null,
-            currency: "KGS",
+            currency: "РУБ",
             description: description ?? null,
             keyRequirements: requirements ?? null,
             status: "NEW",

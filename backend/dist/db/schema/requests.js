@@ -21,7 +21,7 @@ exports.requests = (0, pg_core_1.pgTable)("requests", {
     experienceYears: (0, pg_core_1.numeric)("experience_years", { precision: 4, scale: 1 }),
     salaryFrom: (0, pg_core_1.numeric)("salary_from", { precision: 12, scale: 2 }),
     salaryTo: (0, pg_core_1.numeric)("salary_to", { precision: 12, scale: 2 }),
-    currency: (0, pg_core_1.varchar)("currency", { length: 10 }).default("KGS"),
+    currency: (0, pg_core_1.varchar)("currency", { length: 10 }).default("Руб"),
     description: (0, pg_core_1.text)("description"),
     keyRequirements: (0, pg_core_1.text)("key_requirements"),
     status: (0, pg_core_1.varchar)("status", { length: 30 }).notNull().default("NEW"),

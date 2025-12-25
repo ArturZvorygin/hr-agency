@@ -21,17 +21,21 @@ class RequestService {
     }
     async createRequest(userId, dto) {
         const user = await this.getUserWithCompany(userId);
+        // ✅ нормализация: фронт часто присылает "" из select
+        const staffCategoryId = dto.staffCategoryId && String(dto.staffCategoryId).trim() !== ""
+            ? String(dto.staffCategoryId)
+            : null;
         const [created] = await db_1.db
             .insert(requests_1.requests)
             .values({
             companyId: user.companyId,
             createdBy: user.id,
             positionTitle: dto.positionTitle,
-            staffCategoryId: dto.staffCategoryId,
+            staffCategoryId, // ✅ теперь либо uuid-string, либо null
             experienceYears: dto.experienceYears,
             salaryFrom: dto.salaryFrom,
             salaryTo: dto.salaryTo,
-            currency: dto.currency || "KGS",
+            currency: dto.currency || "РУБ",
             description: dto.description,
             keyRequirements: dto.keyRequirements,
             status: dto.isDraft ? "DRAFT" : "NEW",
@@ -39,16 +43,12 @@ class RequestService {
             .returning();
         return created;
     }
-    // "Мои заявки":
-    // - client  → только свои (createdBy = user.id)
-    // - manager/admin → все заявки компании
-    // Опционально фильтр по статусу
     async listMyRequests(userId, status) {
         const user = await this.getUserWithCompany(userId);
         const companyFilter = (0, drizzle_orm_1.eq)(requests_1.requests.companyId, user.companyId);
         let whereClause = user.role === "client"
             ? (0, drizzle_orm_1.and)(companyFilter, (0, drizzle_orm_1.eq)(requests_1.requests.createdBy, user.id))
-            : companyFilter; // manager/admin видят всё по компании
+            : companyFilter;
         if (status && whereClause) {
             whereClause = (0, drizzle_orm_1.and)(whereClause, (0, drizzle_orm_1.eq)(requests_1.requests.status, status));
         }
