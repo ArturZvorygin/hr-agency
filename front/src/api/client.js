@@ -1,5 +1,5 @@
 // src/api/client.js
-const API_URL = "http://localhost:8000/api";
+const API_URL = "/api";
 
 /* ==========================
    helpers для admin-auth
